@@ -7,7 +7,7 @@ import {
   Heart, Award, Star, ArrowRight, Camera, GraduationCap
 } from 'lucide-react';
 import { FestEvent } from '@/types';
-import { Page } from '@/app/page';
+import { type Page } from '@/app/ClientApp';
 import Hero from '@/app/components/Hero';
 import BentoEvents from '@/app/components/BentoEvents';
 

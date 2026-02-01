@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
-import { Page } from '../page';
+import { type Page } from '../ClientApp';
 
 interface NavbarProps {
   onNavigate: (page: Page) => void;

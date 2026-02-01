@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Instagram, Twitter, Linkedin, Facebook, MapPin, Mail, Phone, Shield } from 'lucide-react';
-import { Page } from '../page';
+import { type Page } from '../ClientApp';
 
 interface FooterProps {
   onNavigate: (page: Page) => void;
