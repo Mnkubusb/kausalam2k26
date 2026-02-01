@@ -20,7 +20,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://kausalam.gecbilaspur.ac.in'), // Update with actual domain
+  metadataBase: new URL('https://kausalam2k26.vercel.app/'), // Update with actual domain
   title: {
     default: "Kaushalam 2026 | GEC Bilaspur Tech Fest",
     template: "%s | Kaushalam 2026"
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Kaushalam 2026 | Innovation Meets Culture",
     description: "The biggest technical and cultural fest of Central India. Join us at GEC Bilaspur for 3 days of events, workshops, and pro-nights.",
-    url: 'https://kausalam.gecbilaspur.ac.in',
+    url: 'https://kausalam2k26.vercel.app/',
     siteName: 'Kaushalam 2026',
     locale: 'en_IN',
     type: 'website',
@@ -72,7 +72,7 @@ export const metadata: Metadata = {
     google: 'verification_token', // Add actual verification token here
   },
   alternates: {
-    canonical: 'https://kausalam.gecbilaspur.ac.in',
+    canonical: 'https://kausalam2k26.vercel.app/',
   },
 };
 
@@ -102,7 +102,7 @@ export default function RootLayout({
       }
     },
     "image": [
-      "https://kausalam.gecbilaspur.ac.in/og-image.jpg"
+      "https://kausalam2k26.vercel.app/screenshot.png"
     ],
     "description": "Kaushalam is the annual cultural and technical fest of Government Engineering College Bilaspur.",
     "organizer": {

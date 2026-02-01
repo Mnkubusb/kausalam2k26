@@ -170,7 +170,7 @@ const Background: React.FC = () => {
   }, []);
 
   return (
-    <div ref={containerRef} className="fixed inset-0 -z-10 bg-[#050505] content--canvas">
+    <div ref={containerRef} className="fixed inset-0 -z-10 bg-[#050505] content--canvas hidden md:block">
       <canvas
         ref={canvasBRef}
         className="block w-full h-full"

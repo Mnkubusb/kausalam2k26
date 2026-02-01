@@ -2,8 +2,7 @@
 
 **The Annual Technical & Cultural Festival of Government Engineering College, Bilaspur.**
 
-![Kaushalam 2026 Screenshot](/public/screenshot)
-*(Note: Ensure the screenshot file has the correct extension if it's not displaying, e.g., .png or .jpg)*
+![Kaushalam 2026 Screenshot](/public/screenshot.png)
 
 ## 🌟 Overview
 
