@@ -391,13 +391,14 @@ const PixelBlast: React.FC<PixelBlastProps> = ({
         canvas,
         antialias,
         alpha: true,
-        powerPreference: 'high-performance'
+        depth: false,
+        stencil: false
       });
       renderer.domElement.style.width = '100%';
       renderer.domElement.style.height = '100%';
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       container.appendChild(renderer.domElement);
-      if (transparent) renderer.setClearAlpha(0);
+      if (transparent) renderer.setClearColor(0x000000, 0);
       else renderer.setClearColor(0x000000, 1);
       const uniforms = {
         uResolution: { value: new THREE.Vector2(0, 0) },
@@ -575,7 +576,7 @@ const PixelBlast: React.FC<PixelBlastProps> = ({
       t.uniforms.uRippleThickness.value = rippleThickness;
       t.uniforms.uRippleSpeed.value = rippleSpeed;
       t.uniforms.uEdgeFade.value = edgeFade;
-      if (transparent) t.renderer.setClearAlpha(0);
+      if (transparent) t.renderer.setClearColor(0x000000, 0);
       else t.renderer.setClearColor(0x000000, 1);
       if (t.liquidEffect) {
         const uStrength = t.liquidEffect;
