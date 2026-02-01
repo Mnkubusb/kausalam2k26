@@ -50,6 +50,7 @@ const Hero: React.FC<HeroProps> = ({ onExplore }) => {
           transition={{ delay: 0.4, type: "spring", stiffness: 100 }}
           className="text-[14vw] md:text-[10vw] font-[900] leading-[0.85] tracking-tighter mb-6 font-space"
         >
+          <span className="sr-only">Kaushalam 2026 GEC Bilaspur Tech Fest</span>
           KAUSHALAM <br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-600 via-rose-500 to-orange-500">2026</span>
         </motion.h1 >
