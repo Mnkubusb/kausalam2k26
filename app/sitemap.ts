@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 import { EVENTS } from '@/constants';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://kausalam2k26.vercel.app/'; // Assuming this is the production URL
+  const baseUrl = 'https://kausalam2k26.vercel.app'; // Assuming this is the production URL
 
   // Static routes
   const routes = [
