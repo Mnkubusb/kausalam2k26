@@ -73,7 +73,12 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
       </div>
       
       <div className="max-w-7xl mx-auto mt-16 pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4 text-gray-500 text-sm">
-        <p>&copy; 2026 Kaushalam. Hosted by GEC Bilaspur. All rights reserved.</p>
+        <div className="flex flex-col gap-1">
+          <p>&copy; 2026 Kaushalam. Hosted by GEC Bilaspur. All rights reserved.</p>
+          <p className="text-[10px] tracking-widest uppercase font-bold text-gray-600">
+            Designed & Developed by <span className="text-red-500/80">Manik Chand Sahu</span>
+          </p>
+        </div>
         <button 
           onClick={() => onNavigate('admin')}
           className="flex items-center gap-2 hover:text-red-500 transition-colors opacity-50 hover:opacity-100"
