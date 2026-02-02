@@ -5,6 +5,13 @@ import { db } from '@/lib/firebase';
 import { ref, push, set, remove, update } from 'firebase/database';
 import { Plus, Trash2, Edit2, X, Save, ShieldCheck, LogIn } from 'lucide-react';
 import { FestEvent } from '@/types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/app/components/ui/select";
 
 interface AdminPageProps {
   events: FestEvent[];
@@ -162,16 +169,20 @@ const AdminPage: React.FC<AdminPageProps> = ({ events }) => {
             </div>
             <div className="space-y-2">
               <label className="text-xs font-black uppercase tracking-widest text-gray-500 ml-2">Category</label>
-              <select 
-                className="w-full px-6 py-4 bg-black/40 border border-white/10 rounded-2xl focus:outline-none focus:border-red-500 transition-colors text-white"
+              <Select
                 value={formData.category}
-                onChange={(e) => setFormData({...formData, category: e.target.value as any})}
+                onValueChange={(value) => setFormData({...formData, category: value as any})}
               >
-                <option value="Technical">Technical</option>
-                <option value="Cultural">Cultural</option>
-                <option value="Sports">Sports</option>
-                <option value="Workshops">Workshops</option>
-              </select>
+                <SelectTrigger className="w-full px-6 py-4 h-auto bg-black/40 border border-white/10 rounded-2xl focus:ring-0 focus:border-red-500 transition-colors text-white">
+                  <SelectValue placeholder="Select Category" />
+                </SelectTrigger>
+                <SelectContent className="bg-black/90 border border-white/10 text-white backdrop-blur-xl">
+                  <SelectItem value="Technical" className="focus:bg-red-600 focus:text-white cursor-pointer">Technical</SelectItem>
+                  <SelectItem value="Cultural" className="focus:bg-red-600 focus:text-white cursor-pointer">Cultural</SelectItem>
+                  <SelectItem value="Sports" className="focus:bg-red-600 focus:text-white cursor-pointer">Sports</SelectItem>
+                  <SelectItem value="Workshops" className="focus:bg-red-600 focus:text-white cursor-pointer">Workshops</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2 md:col-span-2">
               <label className="text-xs font-black uppercase tracking-widest text-gray-500 ml-2">Short Description</label>
@@ -242,32 +253,40 @@ const AdminPage: React.FC<AdminPageProps> = ({ events }) => {
             </div>
             <div className="space-y-2">
               <label className="text-xs font-black uppercase tracking-widest text-gray-500 ml-2">Icon (Lucide Name)</label>
-              <select 
-                className="w-full px-6 py-4 bg-black/40 border border-white/10 rounded-2xl focus:outline-none focus:border-red-500 transition-colors text-white"
+              <Select
                 value={formData.icon}
-                onChange={(e) => setFormData({...formData, icon: e.target.value})}
+                onValueChange={(value) => setFormData({...formData, icon: value})}
               >
-                <option value="Code">Code</option>
-                <option value="Music">Music</option>
-                <option value="Trophy">Trophy</option>
-                <option value="Cpu">Cpu</option>
-                <option value="Camera">Camera</option>
-                <option value="Palette">Palette</option>
-                <option value="Gamepad2">Gamepad2</option>
-                <option value="BrainCircuit">BrainCircuit</option>
-              </select>
+                <SelectTrigger className="w-full px-6 py-4 h-auto bg-black/40 border border-white/10 rounded-2xl focus:ring-0 focus:border-red-500 transition-colors text-white">
+                  <SelectValue placeholder="Select Icon" />
+                </SelectTrigger>
+                <SelectContent className="bg-black/90 border border-white/10 text-white backdrop-blur-xl">
+                  <SelectItem value="Code" className="focus:bg-red-600 focus:text-white cursor-pointer">Code</SelectItem>
+                  <SelectItem value="Music" className="focus:bg-red-600 focus:text-white cursor-pointer">Music</SelectItem>
+                  <SelectItem value="Trophy" className="focus:bg-red-600 focus:text-white cursor-pointer">Trophy</SelectItem>
+                  <SelectItem value="Cpu" className="focus:bg-red-600 focus:text-white cursor-pointer">Cpu</SelectItem>
+                  <SelectItem value="Camera" className="focus:bg-red-600 focus:text-white cursor-pointer">Camera</SelectItem>
+                  <SelectItem value="Palette" className="focus:bg-red-600 focus:text-white cursor-pointer">Palette</SelectItem>
+                  <SelectItem value="Gamepad2" className="focus:bg-red-600 focus:text-white cursor-pointer">Gamepad2</SelectItem>
+                  <SelectItem value="BrainCircuit" className="focus:bg-red-600 focus:text-white cursor-pointer">BrainCircuit</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <label className="text-xs font-black uppercase tracking-widest text-gray-500 ml-2">Grid Span</label>
-              <select 
-                className="w-full px-6 py-4 bg-black/40 border border-white/10 rounded-2xl focus:outline-none focus:border-red-500 transition-colors text-white"
+              <Select
                 value={formData.gridSpan}
-                onChange={(e) => setFormData({...formData, gridSpan: e.target.value as any})}
+                onValueChange={(value) => setFormData({...formData, gridSpan: value as any})}
               >
-                <option value="small">Small</option>
-                <option value="medium">Medium</option>
-                <option value="large">Large</option>
-              </select>
+                <SelectTrigger className="w-full px-6 py-4 h-auto bg-black/40 border border-white/10 rounded-2xl focus:ring-0 focus:border-red-500 transition-colors text-white">
+                  <SelectValue placeholder="Select Grid Span" />
+                </SelectTrigger>
+                <SelectContent className="bg-black/90 border border-white/10 text-white backdrop-blur-xl">
+                  <SelectItem value="small" className="focus:bg-red-600 focus:text-white cursor-pointer">Small</SelectItem>
+                  <SelectItem value="medium" className="focus:bg-red-600 focus:text-white cursor-pointer">Medium</SelectItem>
+                  <SelectItem value="large" className="focus:bg-red-600 focus:text-white cursor-pointer">Large</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="md:col-span-2 flex gap-4 pt-4">
               <button type="submit" className="flex-1 py-4 bg-red-600 text-white font-black rounded-2xl hover:bg-red-500 transition-all flex items-center justify-center gap-2">

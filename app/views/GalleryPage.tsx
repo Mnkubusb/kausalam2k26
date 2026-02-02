@@ -57,7 +57,7 @@ const GalleryPage: React.FC = () => {
 
       {/* Filter Bar */}
       <div className="flex justify-center mb-16 sticky top-24 z-40">
-        <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide bg-black/40 p-2 rounded-3xl border border-white/5 backdrop-blur-xl">
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide bg-black/40 p-2 rounded-3xl border border-white/5 backdrop-blur-xl">
           {CATEGORIES.map((cat) => (
             <button
               key={cat}
