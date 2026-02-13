@@ -58,8 +58,11 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage }) => {
                 {item.name}
               </button>
             ))}
-            <button className="px-6 py-2.5 bg-white text-black font-black rounded-xl hover:bg-red-600 hover:text-white transition-all transform hover:scale-105 active:scale-95 text-xs uppercase tracking-widest">
-              Get Passes
+            <button 
+              onClick={() => onNavigate('register')}
+              className="px-6 py-2.5 bg-white text-black font-black rounded-xl hover:bg-red-600 hover:text-white transition-all transform hover:scale-105 active:scale-95 text-xs uppercase tracking-widest"
+            >
+              Register / Login
             </button>
           </div>
 
@@ -108,9 +111,10 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage }) => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
+                onClick={() => handleNavClick({ action: () => onNavigate('register') })}
                 className="mt-8 py-6 bg-white text-black text-2xl font-black rounded-3xl"
               >
-                Get Passes
+                Register / Login
               </motion.button>
             </div>
           </motion.div>

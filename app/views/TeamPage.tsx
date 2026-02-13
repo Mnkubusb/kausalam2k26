@@ -57,10 +57,16 @@ const TeamCard: React.FC<{ member: any; index: number }> = ({ member, index }) =
   );
 };
 
-const TeamPage: React.FC = () => {
-  const [activeCategory, setActiveCategory] = useState('All');
+interface TeamPageProps {
+  members: any[];
+}
 
-  const filteredTeam = TEAM_MEMBERS.filter(member => 
+const TeamPage: React.FC<TeamPageProps> = ({ members }) => {
+  const [activeCategory, setActiveCategory] = useState('All');
+  
+  const displayMembers = members.length > 0 ? members : TEAM_MEMBERS;
+
+  const filteredTeam = displayMembers.filter(member => 
     activeCategory === 'All' || member.category === activeCategory
   );
 

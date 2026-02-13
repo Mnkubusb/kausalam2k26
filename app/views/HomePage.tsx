@@ -22,7 +22,7 @@ interface HomePageProps {
 const HomePage: React.FC<HomePageProps> = ({ events, onExplore, onSelectEvent, onSeeAll, onNavigate }) => {
   return (
     <div className="overflow-hidden">
-      <Hero onExplore={onExplore} />
+      <Hero onExplore={onExplore} onRegister={() => onNavigate('register')} />
       
       {/* 1. Introduction of KAUSHALAM */}
       <section className="py-32 px-6 max-w-7xl mx-auto relative">

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Clock, MapPin, Coffee, Star } from 'lucide-react';
 
 const SCHEDULE_DATA = {
+  // ... (keep static data as fallback)
   'Day 1': [
     { time: '09:00 AM', title: 'Inauguration Ceremony', venue: 'Main Auditorium', type: 'Official' },
     { time: '11:00 AM', title: 'Byte Battles 2.0 Kickoff', venue: 'Computing Lab A', type: 'Technical' },
@@ -27,8 +28,27 @@ const SCHEDULE_DATA = {
   ]
 };
 
-const SchedulePage: React.FC = () => {
-  const [activeDay, setActiveDay] = useState<keyof typeof SCHEDULE_DATA>('Day 1');
+interface SchedulePageProps {
+  schedule: any[];
+}
+
+const SchedulePage: React.FC<SchedulePageProps> = ({ schedule }) => {
+  const [activeDay, setActiveDay] = useState<string>('Day 1');
+
+  // Group items by day
+  const groupedSchedule: any = {};
+  if (schedule && schedule.length > 0) {
+    schedule.forEach(item => {
+      if (!groupedSchedule[item.day]) groupedSchedule[item.day] = [];
+      groupedSchedule[item.day].push(item);
+    });
+  }
+
+  const displayData = Object.keys(groupedSchedule).length > 0 ? groupedSchedule : SCHEDULE_DATA;
+  const days = Object.keys(displayData);
+  
+  // Ensure activeDay is valid for the current displayData
+  const currentDay = displayData[activeDay] ? activeDay : days[0];
 
   return (
     <div className="min-h-screen pt-12 pb-24 px-6 md:px-12 max-w-7xl mx-auto">
@@ -48,10 +68,10 @@ const SchedulePage: React.FC = () => {
       {/* Tabs */}
       <div className="flex justify-center mb-12">
         <div className="flex gap-2 bg-white/5 p-2 rounded-3xl border border-white/5 backdrop-blur-xl">
-          {Object.keys(SCHEDULE_DATA).map((day) => (
+          {days.map((day) => (
             <button
               key={day}
-              onClick={() => setActiveDay(day as any)}
+              onClick={() => setActiveDay(day)}
               className={`px-8 py-4 rounded-2xl font-bold transition-all uppercase tracking-widest text-xs ${
                 activeDay === day 
                   ? 'bg-red-600 text-white shadow-lg shadow-red-600/20' 
@@ -68,14 +88,14 @@ const SchedulePage: React.FC = () => {
       <div className="max-w-4xl mx-auto">
         <AnimatePresence mode="wait">
           <motion.div
-            key={activeDay}
+            key={currentDay}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
-            {SCHEDULE_DATA[activeDay].map((item, idx) => (
+            {displayData[currentDay]?.map((item: any, idx: number) => (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -91,7 +111,7 @@ const SchedulePage: React.FC = () => {
                 {/* Divider */}
                 <div className="relative flex flex-col items-center">
                   <div className="w-4 h-4 rounded-full bg-red-600 ring-4 ring-red-600/20 z-10" />
-                  {idx !== SCHEDULE_DATA[activeDay].length - 1 && (
+                  {idx !== displayData[currentDay].length - 1 && (
                     <div className="w-0.5 flex-1 bg-gradient-to-b from-red-600 to-transparent absolute top-4 h-[calc(100%+1.5rem)]" />
                   )}
                 </div>

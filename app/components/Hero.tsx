@@ -11,9 +11,10 @@ const PixelBlast = dynamic(() => import('./PixelBlast'), {
 
 interface HeroProps {
   onExplore: () => void;
+  onRegister: () => void;
 }
 
-const Hero: React.FC<HeroProps> = ({ onExplore }) => {
+const Hero: React.FC<HeroProps> = ({ onExplore, onRegister }) => {
   return (
     <section className="relative min-h-[90vh] flex flex-col items-center justify-center px-6 overflow-hidden">
       {/* Interactive PixelBlast Background */}
@@ -70,7 +71,10 @@ const Hero: React.FC<HeroProps> = ({ onExplore }) => {
           transition={{ delay: 0.8 }}
           className="flex flex-col sm:flex-row gap-4 items-center justify-center pointer-events-auto"
         >
-          <button className="px-8 py-4 bg-white text-black text-lg font-black rounded-2xl hover:bg-red-600 hover:text-white transition-all transform hover:scale-105 active:scale-95 shadow-xl shadow-white/5">
+          <button 
+            onClick={onRegister}
+            className="px-8 py-4 bg-white text-black text-lg font-black rounded-2xl hover:bg-red-600 hover:text-white transition-all transform hover:scale-105 active:scale-95 shadow-xl shadow-white/5"
+          >
             Register Now
           </button>
           <button 

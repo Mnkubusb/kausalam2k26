@@ -5,8 +5,9 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Navbar from "./components/Navbar";
 import Background from "./components/Background";
 import Footer from "./components/Footer";
-import { db } from "@/lib/firebase";
-import { ref, onValue } from "firebase/database";
+import { db, auth } from "@/lib/firebase";
+import { ref, onValue, get } from "firebase/database";
+import { onAuthStateChanged } from "firebase/auth";
 import { FestEvent } from "@/types";
 import { EVENTS as STATIC_EVENTS } from "@/constants";
 
@@ -38,6 +39,9 @@ const AdminPage = dynamic(() => import("@/app/views/AdminPage"), {
 const GalleryPage = dynamic(() => import("@/app/views/GalleryPage"), {
   loading: () => <div className="min-h-screen flex items-center justify-center text-white">Loading...</div>
 });
+const AuthPage = dynamic(() => import("@/app/views/AuthPage"), {
+  loading: () => <div className="min-h-screen flex items-center justify-center text-white">Loading...</div>
+});
 
 export type Page =
   | "home"
@@ -50,7 +54,9 @@ export type Page =
   | "terms"
   | "cookies"
   | "admin"
-  | "gallery";
+  | "gallery"
+  | "login"
+  | "register";
 
 interface ClientAppProps {
   initialPage?: Page;
@@ -61,79 +67,79 @@ const ClientApp: React.FC<ClientAppProps> = ({ initialPage = "home", initialEven
   const router = useRouter();
   const pathname = usePathname();
   
-  const [currentPage, setCurrentPage] = useState<Page>(initialPage);
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(initialEventId);
+  // Derive page state from URL
+  const path = pathname?.split('/').filter(Boolean)[0];
+  const eventIdFromUrl = pathname?.split('/').filter(Boolean)[1] || null;
+
+  let currentPage: Page = "home";
+  if (path) {
+    if (path === "events" && eventIdFromUrl) {
+      currentPage = "event-details";
+    } else if (["events", "team", "schedule", "help", "privacy", "terms", "cookies", "admin", "gallery", "login", "register"].includes(path)) {
+      currentPage = path as Page;
+    }
+  }
+
+  const selectedEventId = currentPage === "event-details" ? eventIdFromUrl : null;
+
   const [events, setEvents] = useState<FestEvent[]>([]);
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [galleryItems, setGalleryItems] = useState<any[]>([]);
+  const [scheduleItems, setScheduleItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Sync state with URL when pathname changes (handling back/forward browser buttons)
-  useEffect(() => {
-    // This is a basic mapping. In a robust app, we'd have a route config.
-    const path = pathname?.split('/').filter(Boolean)[0];
-    const eventIdFromUrl = pathname?.split('/').filter(Boolean)[1];
-
-    let newPage: Page = "home";
-    if (path) {
-        if (path === "events" && eventIdFromUrl) {
-            newPage = "event-details";
-            setSelectedEventId(eventIdFromUrl);
-        } else if (["events", "team", "schedule", "help", "privacy", "terms", "cookies", "admin", "gallery"].includes(path)) {
-            newPage = path as Page;
-        } else {
-            // Handle unknown routes? defaulting to home or keeping current if we want.
-            // But if we are here, it's likely a direct navigation.
-        }
-    } else {
-        newPage = "home";
-    }
-    
-    // Only update if different to prevent loops, though React handles this well.
-    // However, since we are managing state AND URL, we need to be careful.
-    // We trust props/initial state for first render, but update on subsequent navigations.
-    // Actually, useEffect on pathname will trigger on mount too if we don't block it.
-    // But we initialized state from props which came from the server/parent URL parsing.
-    // So this effect is mostly for Client-Side navigation (popstate) or if parent doesn't update.
-    
-    // Since we are moving to router.push based navigation, the pathname WILL update.
-    if (newPage !== currentPage) {
-       setCurrentPage(newPage);
-    }
-    if (newPage === "event-details" && eventIdFromUrl && eventIdFromUrl !== selectedEventId) {
-        setSelectedEventId(eventIdFromUrl);
-    }
-    
-  }, [pathname]);
+  const [userRole, setUserRole] = useState<'admin' | 'student' | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [currentPage, selectedEventId]);
+  }, [pathname]);
 
   useEffect(() => {
     const eventsRef = ref(db, "events");
-    const unsubscribe = onValue(
-      eventsRef,
-      (snapshot) => {
+    const teamRef = ref(db, "team");
+    const galleryRef = ref(db, "gallery");
+    const scheduleRef = ref(db, "schedule");
+
+    // Helper to fetch data from a ref
+    const fetchData = (dataRef: any, setter: (data: any) => void, staticFallback: any) => {
+      onValue(dataRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
-          const fetchedEvents: FestEvent[] = Object.keys(data).map((key) => ({
+          const fetchedData: any[] = Object.keys(data).map((key) => ({
             id: key,
             ...data[key],
           }));
-          fetchedEvents.sort((a, b) => a.name.localeCompare(b.name));
-          setEvents(fetchedEvents);
+          setter(fetchedData);
         } else {
-          setEvents(STATIC_EVENTS);
+          setter(staticFallback);
         }
         setLoading(false);
-      },
-      (error) => {
-        console.error("Error fetching events:", error);
-        setEvents(STATIC_EVENTS);
-        setLoading(false);
-      },
-    );
+      });
+    };
 
-    return () => {};
+    fetchData(eventsRef, (data) => {
+      data.sort((a: any, b: any) => a.name.localeCompare(b.name));
+      setEvents(data);
+    }, STATIC_EVENTS);
+
+    fetchData(teamRef, setTeamMembers, []); 
+    fetchData(galleryRef, setGalleryItems, []);
+    fetchData(scheduleRef, setScheduleItems, []);
+
+    // Listen for auth state changes to fetch user role
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userRef = ref(db, `users/${user.uid}`);
+        const snapshot = await get(userRef);
+        const userData = snapshot.val();
+        setUserRole(userData?.role || 'student');
+      } else {
+        setUserRole(null);
+      }
+    });
+
+    return () => {
+      unsubscribeAuth();
+    };
   }, []);
 
   const navigateTo = (page: Page, eventId?: string) => {
@@ -187,15 +193,46 @@ const ClientApp: React.FC<ClientAppProps> = ({ initialPage = "home", initialEven
              </div>
         )}
 
-        {currentPage === "team" && <TeamPage />}
+        {currentPage === "team" && <TeamPage members={teamMembers} />}
 
-        {currentPage === "gallery" && <GalleryPage />}
+        {currentPage === "gallery" && <GalleryPage items={galleryItems} />}
 
-        {currentPage === "schedule" && <SchedulePage />}
+        {currentPage === "schedule" && <SchedulePage schedule={scheduleItems} />}
 
         {currentPage === "help" && <HelpPage />}
 
-        {currentPage === "admin" && <AdminPage events={events} />}
+        {currentPage === "admin" && userRole === "admin" && (
+          <AdminPage 
+            events={events} 
+            teamMembers={teamMembers} 
+            galleryItems={galleryItems} 
+            scheduleItems={scheduleItems}
+            userRole={userRole}
+          />
+        )}
+
+        {currentPage === "admin" && userRole !== "admin" && !loading && (
+          <div className="min-h-[60vh] flex flex-col items-center justify-center text-white px-6 text-center">
+            <h2 className="text-4xl font-black font-space uppercase mb-4">Access Denied</h2>
+            <p className="text-gray-400 mb-8 max-w-md">You need administrator privileges to view this page. Please sign in with an admin account.</p>
+            <button 
+              onClick={() => navigateTo("login")}
+              className="px-8 py-4 bg-red-600 text-white font-black rounded-2xl hover:bg-red-500 transition-all"
+            >
+              Go to Login
+            </button>
+          </div>
+        )}
+
+        {(currentPage === "login" || currentPage === "register") && (
+          <AuthPage 
+            initialMode={currentPage === "register" ? 'register' : 'login'} 
+            onLoginSuccess={(role) => {
+              setUserRole(role);
+              navigateTo(role === 'admin' ? 'admin' : 'home');
+            }}
+          />
+        )}
 
         {(currentPage === "privacy" ||
           currentPage === "terms" ||

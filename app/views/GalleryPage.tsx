@@ -18,11 +18,17 @@ const MEDIA_ITEMS = [
 
 const CATEGORIES = ['All', 'Aftermovie', 'Vlog', 'Technical', 'Cultural', 'Campus'];
 
-const GalleryPage: React.FC = () => {
+interface GalleryPageProps {
+  items: any[];
+}
+
+const GalleryPage: React.FC<GalleryPageProps> = ({ items }) => {
   const [activeCategory, setActiveCategory] = useState('All');
   const [selectedMedia, setSelectedMedia] = useState<any | null>(null);
+  
+  const displayItems = items.length > 0 ? items : MEDIA_ITEMS;
 
-  const filteredMedia = MEDIA_ITEMS.filter(item => 
+  const filteredMedia = displayItems.filter(item => 
     activeCategory === 'All' || item.category === activeCategory
   );
 
