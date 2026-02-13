@@ -7,8 +7,8 @@ import Background from "./components/Background";
 import Footer from "./components/Footer";
 import { db } from "@/lib/firebase";
 import { ref, onValue } from "firebase/database";
-import { FestEvent } from "@/types";
-import { EVENTS as STATIC_EVENTS } from "@/constants";
+import { FestEvent, TeamMember, GalleryItem, ScheduleItem } from "@/types";
+import { EVENTS as STATIC_EVENTS, TEAM_MEMBERS as STATIC_TEAM } from "@/constants";
 
 // Dynamic imports for code splitting
 const HomePage = dynamic(() => import("@/app/views/HomePage"), {
@@ -64,6 +64,9 @@ const ClientApp: React.FC<ClientAppProps> = ({ initialPage = "home", initialEven
   const [currentPage, setCurrentPage] = useState<Page>(initialPage);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(initialEventId);
   const [events, setEvents] = useState<FestEvent[]>([]);
+  const [team, setTeam] = useState<TeamMember[]>([]);
+  const [gallery, setGallery] = useState<GalleryItem[]>([]);
+  const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Sync state with URL when pathname changes (handling back/forward browser buttons)
@@ -109,31 +112,47 @@ const ClientApp: React.FC<ClientAppProps> = ({ initialPage = "home", initialEven
   }, [currentPage, selectedEventId]);
 
   useEffect(() => {
-    const eventsRef = ref(db, "events");
-    const unsubscribe = onValue(
-      eventsRef,
-      (snapshot) => {
+    const refs = {
+      events: ref(db, "events"),
+      team: ref(db, "team"),
+      gallery: ref(db, "gallery"),
+      schedule: ref(db, "schedule")
+    };
+
+    const unsubscribes = [
+      onValue(refs.events, (snapshot) => {
         const data = snapshot.val();
         if (data) {
-          const fetchedEvents: FestEvent[] = Object.keys(data).map((key) => ({
-            id: key,
-            ...data[key],
-          }));
-          fetchedEvents.sort((a, b) => a.name.localeCompare(b.name));
-          setEvents(fetchedEvents);
-        } else {
-          setEvents(STATIC_EVENTS);
+          const fetched: FestEvent[] = Object.keys(data).map((key) => ({ id: key, ...data[key] }));
+          fetched.sort((a, b) => a.name.localeCompare(b.name));
+          setEvents(fetched);
+        } else setEvents(STATIC_EVENTS);
+      }),
+      onValue(refs.team, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          const fetched: TeamMember[] = Object.keys(data).map((key) => ({ id: key, ...data[key] }));
+          setTeam(fetched);
+        } else setTeam(STATIC_TEAM);
+      }),
+      onValue(refs.gallery, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          const fetched: GalleryItem[] = Object.keys(data).map((key) => ({ id: key, ...data[key] }));
+          setGallery(fetched);
         }
-        setLoading(false);
-      },
-      (error) => {
-        console.error("Error fetching events:", error);
-        setEvents(STATIC_EVENTS);
-        setLoading(false);
-      },
-    );
+      }),
+      onValue(refs.schedule, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          const fetched: ScheduleItem[] = Object.keys(data).map((key) => ({ id: key, ...data[key] }));
+          setSchedule(fetched);
+        }
+      })
+    ];
 
-    return () => {};
+    setLoading(false);
+    return () => unsubscribes.forEach(unsub => unsub());
   }, []);
 
   const navigateTo = (page: Page, eventId?: string) => {
@@ -187,15 +206,22 @@ const ClientApp: React.FC<ClientAppProps> = ({ initialPage = "home", initialEven
              </div>
         )}
 
-        {currentPage === "team" && <TeamPage />}
+        {currentPage === "team" && <TeamPage team={team} />}
 
-        {currentPage === "gallery" && <GalleryPage />}
+        {currentPage === "gallery" && <GalleryPage gallery={gallery} />}
 
-        {currentPage === "schedule" && <SchedulePage />}
+        {currentPage === "schedule" && <SchedulePage schedule={schedule} />}
 
         {currentPage === "help" && <HelpPage />}
 
-        {currentPage === "admin" && <AdminPage events={events} />}
+        {currentPage === "admin" && (
+          <AdminPage 
+            events={events} 
+            team={team}
+            gallery={gallery} 
+            schedule={schedule} 
+          />
+        )}
 
         {(currentPage === "privacy" ||
           currentPage === "terms" ||

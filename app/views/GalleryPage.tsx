@@ -3,26 +3,19 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 // Added Facebook to the imports from lucide-react
 import { Play, Camera, Film, Image as ImageIcon, ExternalLink, Youtube, Instagram, Heart, Facebook } from 'lucide-react';
-
-const MEDIA_ITEMS = [
-  { id: '1', type: 'video', category: 'Aftermovie', title: 'Kaushalam 2K25 Official Aftermovie', url: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=2070&auto=format&fit=crop', link: 'https://youtube.com/dummy1' },
-  { id: '2', type: 'image', category: 'Cultural', title: 'Symphony of Souls Main Stage', url: 'https://images.unsplash.com/photo-1514525253361-bee8718a7439?q=80&w=1964&auto=format&fit=crop' },
-  { id: '3', type: 'video', category: 'Vlog', title: 'Student Experience Vlog - Day 1', url: 'https://images.unsplash.com/photo-1523580494863-6f3031224c94?q=80&w=2070&auto=format&fit=crop', link: 'https://youtube.com/dummy2' },
-  { id: '4', type: 'image', category: 'Technical', title: 'Robot Wars Final Arena', url: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?q=80&w=2070&auto=format&fit=crop' },
-  { id: '5', type: 'image', category: 'Technical', title: 'Byte Battles Hackathon', url: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?q=80&w=2069&auto=format&fit=crop' },
-  { id: '6', type: 'video', category: 'Aftermovie', title: 'EDM Night Highlights', url: 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=2070&auto=format&fit=crop', link: 'https://youtube.com/dummy3' },
-  { id: '7', type: 'image', category: 'Cultural', title: 'Classical Dance Performance', url: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?q=80&w=2070&auto=format&fit=crop' },
-  { id: '8', type: 'image', category: 'Campus', title: 'Neon Decorations Campus Hall', url: 'https://images.unsplash.com/photo-1511578314322-379afb476865?q=80&w=2069&auto=format&fit=crop' },
-  { id: '9', type: 'video', category: 'Vlog', title: 'The Making of Kaushalam 2K25', url: 'https://images.unsplash.com/photo-1582192732213-8be32119d187?q=80&w=1974&auto=format&fit=crop', link: 'https://youtube.com/dummy4' },
-];
+import { GalleryItem } from '@/types';
 
 const CATEGORIES = ['All', 'Aftermovie', 'Vlog', 'Technical', 'Cultural', 'Campus'];
 
-const GalleryPage: React.FC = () => {
-  const [activeCategory, setActiveCategory] = useState('All');
-  const [selectedMedia, setSelectedMedia] = useState<any | null>(null);
+interface GalleryPageProps {
+  gallery: GalleryItem[];
+}
 
-  const filteredMedia = MEDIA_ITEMS.filter(item => 
+const GalleryPage: React.FC<GalleryPageProps> = ({ gallery }) => {
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [selectedMedia, setSelectedMedia] = useState<GalleryItem | null>(null);
+
+  const filteredMedia = gallery.filter(item => 
     activeCategory === 'All' || item.category === activeCategory
   );
 

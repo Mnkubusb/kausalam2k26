@@ -1,34 +1,18 @@
-
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Clock, MapPin, Coffee, Star } from 'lucide-react';
+import { ScheduleItem } from '@/types';
 
-const SCHEDULE_DATA = {
-  'Day 1': [
-    { time: '09:00 AM', title: 'Inauguration Ceremony', venue: 'Main Auditorium', type: 'Official' },
-    { time: '11:00 AM', title: 'Byte Battles 2.0 Kickoff', venue: 'Computing Lab A', type: 'Technical' },
-    { time: '01:00 PM', title: 'Networking Lunch', venue: 'Food Court', type: 'Social' },
-    { time: '02:00 PM', title: 'Cyber Strike Prelims', venue: 'Gaming Zone', type: 'Sports' },
-    { time: '06:00 PM', title: 'Acoustic Night', venue: 'Open Plaza', type: 'Cultural' },
-  ],
-  'Day 2': [
-    { time: '10:00 AM', title: 'AI Workshop', venue: 'Seminar Hall B', type: 'Workshops' },
-    { time: '12:00 PM', title: 'Robo Rumble Heats', venue: 'Arena 1', type: 'Technical' },
-    { time: '02:00 PM', title: 'Artistic Echoes', venue: 'Open Plaza', type: 'Cultural' },
-    { time: '04:00 PM', title: 'Photography Gallery Open', venue: 'Campus Hall', type: 'Cultural' },
-    { time: '07:00 PM', title: 'Symphony of Souls', venue: 'Main Auditorium', type: 'Cultural' },
-  ],
-  'Day 3': [
-    { time: '09:00 AM', title: 'Byte Battles Finals', venue: 'Computing Lab A', type: 'Technical' },
-    { time: '11:00 AM', title: 'Robo Rumble Finals', venue: 'Arena 1', type: 'Technical' },
-    { time: '02:00 PM', title: 'Cyber Strike Finals', venue: 'Gaming Zone', type: 'Sports' },
-    { time: '04:00 PM', title: 'Closing & Prize Distribution', venue: 'Main Auditorium', type: 'Official' },
-    { time: '08:00 PM', title: 'Pro-Night DJ Set', venue: 'Grand Ground', type: 'Cultural' },
-  ]
-};
+interface SchedulePageProps {
+  schedule: ScheduleItem[];
+}
 
-const SchedulePage: React.FC = () => {
-  const [activeDay, setActiveDay] = useState<keyof typeof SCHEDULE_DATA>('Day 1');
+const SchedulePage: React.FC<SchedulePageProps> = ({ schedule }) => {
+  const [activeDay, setActiveDay] = useState<string>('Day 1');
+
+  const days = ['Day 1', 'Day 2', 'Day 3'];
+
+  const filteredSchedule = schedule.filter(item => item.day === activeDay);
 
   return (
     <div className="min-h-screen pt-12 pb-24 px-6 md:px-12 max-w-7xl mx-auto">
@@ -48,10 +32,10 @@ const SchedulePage: React.FC = () => {
       {/* Tabs */}
       <div className="flex justify-center mb-12">
         <div className="flex gap-2 bg-white/5 p-2 rounded-3xl border border-white/5 backdrop-blur-xl">
-          {Object.keys(SCHEDULE_DATA).map((day) => (
+          {days.map((day) => (
             <button
               key={day}
-              onClick={() => setActiveDay(day as any)}
+              onClick={() => setActiveDay(day)}
               className={`px-8 py-4 rounded-2xl font-bold transition-all uppercase tracking-widest text-xs ${
                 activeDay === day 
                   ? 'bg-red-600 text-white shadow-lg shadow-red-600/20' 
@@ -75,12 +59,12 @@ const SchedulePage: React.FC = () => {
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
-            {SCHEDULE_DATA[activeDay].map((item, idx) => (
+            {filteredSchedule.map((item, idx) => (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.1 }}
-                key={idx}
+                key={item.id || idx}
                 className="group relative flex gap-8 items-center"
               >
                 {/* Time */}
@@ -91,7 +75,7 @@ const SchedulePage: React.FC = () => {
                 {/* Divider */}
                 <div className="relative flex flex-col items-center">
                   <div className="w-4 h-4 rounded-full bg-red-600 ring-4 ring-red-600/20 z-10" />
-                  {idx !== SCHEDULE_DATA[activeDay].length - 1 && (
+                  {idx !== filteredSchedule.length - 1 && (
                     <div className="w-0.5 flex-1 bg-gradient-to-b from-red-600 to-transparent absolute top-4 h-[calc(100%+1.5rem)]" />
                   )}
                 </div>

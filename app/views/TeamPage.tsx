@@ -1,12 +1,13 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Github, Linkedin, Twitter, Instagram, Globe, Mail } from 'lucide-react';
-import { TEAM_MEMBERS } from '@/constants';
+import { Github, Linkedin, Twitter, Instagram, Globe, Mail, Users } from 'lucide-react';
+import { TeamMember } from '@/types';
+import { TEAM_MEMBERS as STATIC_TEAM } from '@/constants';
 
 const CATEGORIES = ['All', 'Core', 'Technical', 'Cultural', 'Creative', 'Publicity', 'Operations'];
 
-const TeamCard: React.FC<{ member: any; index: number }> = ({ member, index }) => {
+const TeamCard: React.FC<{ member: TeamMember; index: number }> = ({ member, index }) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -15,21 +16,29 @@ const TeamCard: React.FC<{ member: any; index: number }> = ({ member, index }) =
       className="group relative"
     >
       <div className="relative aspect-4/5 rounded-[40px] overflow-hidden bg-white/5 border border-white/10 group-hover:border-red-500/40 transition-all duration-500">
-        <img 
-          src={member.image} 
-          alt={member.name} 
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0" 
-        />
+        {member.image ? (
+          <img 
+            src={member.image} 
+            alt={member.name} 
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0" 
+          />
+        ) : (
+          <div className="w-full h-full bg-red-600/10 flex items-center justify-center text-red-500/20">
+             <Users size={80} />
+          </div>
+        )}
         
         {/* Overlay */}
-        <div className="absolute inset-0 bg-linear-to-t from-black via-black/20 to-transparent opacity-60 group-hover:opacity-90 transition-opacity" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-60 group-hover:opacity-90 transition-opacity" />
         
         {/* Hover Social Links */}
         <div className="absolute inset-0 flex items-center justify-center gap-4 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-4 group-hover:translate-y-0">
-          {Object.entries(member.links).map(([platform, url]) => (
+          {member.links && Object.entries(member.links).map(([platform, url]) => url ? (
             <a 
               key={platform} 
               href={url as string} 
+              target="_blank"
+              rel="noopener noreferrer"
               className="p-3 bg-red-600 rounded-2xl text-white hover:bg-white hover:text-red-600 transition-colors shadow-xl"
             >
               {platform === 'linkedin' && <Linkedin size={20} />}
@@ -37,7 +46,7 @@ const TeamCard: React.FC<{ member: any; index: number }> = ({ member, index }) =
               {platform === 'twitter' && <Twitter size={20} />}
               {platform === 'instagram' && <Instagram size={20} />}
             </a>
-          ))}
+          ) : null)}
         </div>
 
         {/* Info */}
@@ -57,10 +66,16 @@ const TeamCard: React.FC<{ member: any; index: number }> = ({ member, index }) =
   );
 };
 
-const TeamPage: React.FC = () => {
-  const [activeCategory, setActiveCategory] = useState('All');
+interface TeamPageProps {
+  team?: TeamMember[];
+}
 
-  const filteredTeam = TEAM_MEMBERS.filter(member => 
+const TeamPage: React.FC<TeamPageProps> = ({ team }) => {
+  const [activeCategory, setActiveCategory] = useState('All');
+  
+  const displayTeam = team && team.length > 0 ? team : STATIC_TEAM;
+
+  const filteredTeam = displayTeam.filter(member => 
     activeCategory === 'All' || member.category === activeCategory
   );
 
