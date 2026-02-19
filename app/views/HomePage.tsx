@@ -102,7 +102,7 @@ const HomePage: React.FC<HomePageProps> = ({ events, onExplore, onSelectEvent, o
               className="lg:col-span-3 p-10 md:p-16 rounded-[60px] bg-white/5 border border-white/10 flex flex-col md:flex-row items-center gap-12"
             >
               <div className="w-64 h-64 rounded-full overflow-hidden border-4 border-red-600/30 p-2 shrink-0">
-                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1974&auto=format&fit=crop" className="w-full h-full object-cover rounded-full" alt="Principal" />
+                <img src="/Princi.jpeg" className="w-full h-full object-cover rounded-full" alt="Principal" />
               </div>
               <div className="text-center md:text-left">
                 <p className="text-red-500 font-black tracking-[0.4em] uppercase text-xs mb-2">Respected Principal, GEC Bilaspur</p>
@@ -113,7 +113,6 @@ const HomePage: React.FC<HomePageProps> = ({ events, onExplore, onSelectEvent, o
               </div>
             </motion.div>
 
-            {/* Other Faculties */}
             {[
               { name: 'Dr. Aryan Sharma', role: 'Head of Technical Committee', img: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=2070&auto=format&fit=crop' },
               { name: 'Prof. Meera Iyer', role: 'Head of Cultural Affairs', img: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1976&auto=format&fit=crop' },
