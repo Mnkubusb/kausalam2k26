@@ -1,5 +1,13 @@
 
 export type EventCategory = 'Technical' | 'Cultural' | 'Sports' | 'Workshops' | 'Fun Events';
+export type HomeEventsGridSize =
+  | 'auto'
+  | 'small'
+  | 'wide'
+  | 'tall'
+  | 'large'
+  | 'smaller'
+  | 'bigger';
 
 export interface FestEvent {
   id: string;
@@ -17,6 +25,8 @@ export interface FestEvent {
   image: string;
   icon: string;
   gridSpan: 'small' | 'medium' | 'large';
+  homeGridSize?: HomeEventsGridSize;
+  homeApproved?: boolean;
   registrationUrl: string;
 }
 

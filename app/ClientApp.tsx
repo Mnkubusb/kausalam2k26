@@ -7,7 +7,12 @@ import Background from "./components/Background";
 import Footer from "./components/Footer";
 import { db } from "@/lib/firebase";
 import { ref, onValue } from "firebase/database";
-import { FestEvent, TeamMember, GalleryItem, ScheduleItem } from "@/types";
+import {
+  FestEvent,
+  TeamMember,
+  GalleryItem,
+  ScheduleItem,
+} from "@/types";
 import { EVENTS as STATIC_EVENTS, TEAM_MEMBERS as STATIC_TEAM } from "@/constants";
 
 // Dynamic imports for code splitting
@@ -116,7 +121,7 @@ const ClientApp: React.FC<ClientAppProps> = ({ initialPage = "home", initialEven
       events: ref(db, "events"),
       team: ref(db, "team"),
       gallery: ref(db, "gallery"),
-      schedule: ref(db, "schedule")
+      schedule: ref(db, "schedule"),
     };
 
     const unsubscribes = [
@@ -219,7 +224,7 @@ const ClientApp: React.FC<ClientAppProps> = ({ initialPage = "home", initialEven
             events={events} 
             team={team}
             gallery={gallery} 
-            schedule={schedule} 
+            schedule={schedule}
           />
         )}
 

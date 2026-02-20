@@ -12,27 +12,44 @@ const iconMap: Record<string, any> = {
   Code, Music, Trophy, Cpu, Camera, Palette, Gamepad2, BrainCircuit
 };
 
+const normalizeHomeGridSize = (size?: FestEvent['homeGridSize']) => {
+  if (size === 'bigger') return 'large';
+  if (size === 'smaller') return 'auto';
+  return size || 'auto';
+};
+
 const BentoCard: React.FC<{ 
   event: FestEvent; 
+  index: number;
   onSelect: (id: string) => void;
   isHovered: boolean;
   onHover: (id: string | null) => void;
   anyHovered: boolean;
-}> = ({ event, onSelect, isHovered, onHover, anyHovered }) => {
+}> = ({ event, index, onSelect, isHovered, onHover, anyHovered }) => {
   const Icon = iconMap[event.icon] || Code;
-
-  const spanClass = {
-    small: 'col-span-1 row-span-1',
-    medium: 'col-span-1 md:col-span-2 row-span-1',
-    large: 'col-span-1 md:col-span-2 row-span-2',
+  const gridSize = normalizeHomeGridSize(event.homeGridSize);
+  const bentoPattern = [
+    'col-span-1 sm:col-span-2 lg:col-span-3 lg:row-span-2',
+    'col-span-1 sm:col-span-2 lg:col-span-3 lg:row-span-1',
+    'col-span-1 lg:col-span-2 lg:row-span-1',
+    'col-span-1 sm:col-span-2 lg:col-span-4 lg:row-span-1',
+  ];
+  const adminSpanMap = {
+    auto: '',
+    small: 'col-span-1 lg:col-span-2 lg:row-span-1',
+    wide: 'col-span-1 sm:col-span-2 lg:col-span-4 lg:row-span-1',
+    tall: 'col-span-1 sm:col-span-2 lg:col-span-3 lg:row-span-2',
+    large: 'col-span-1 sm:col-span-2 lg:col-span-6 lg:row-span-2',
   };
+  const defaultSpan = bentoPattern[index % bentoPattern.length];
+  const spanClass = adminSpanMap[gridSize] || defaultSpan;
 
   return (
     <motion.div
       onMouseEnter={() => onHover(event.id)}
       onMouseLeave={() => onHover(null)}
       onClick={() => onSelect(event.id)}
-      className={`relative rounded-3xl overflow-hidden cursor-pointer group ${spanClass[event.gridSpan]}
+      className={`relative rounded-3xl overflow-hidden cursor-pointer group ${spanClass}
         ${anyHovered && !isHovered ? 'blur-[2px] opacity-40 grayscale-[0.5]' : 'opacity-100'} 
         transition-all duration-500 ease-out border border-white/10 hover:border-red-500/30`}
     >
@@ -85,10 +102,16 @@ interface BentoEventsProps {
   onSelectEvent: (id: string) => void;
 }
 
-const BentoEvents: React.FC<BentoEventsProps> = ({ events, limit, onSeeAll, onSelectEvent }) => {
+const BentoEvents: React.FC<BentoEventsProps> = ({
+  events,
+  limit,
+  onSeeAll,
+  onSelectEvent,
+}) => {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
-  const displayEvents = limit ? events.slice(0, limit) : events;
+  const approvedEvents = events.filter((event) => event.homeApproved === true);
+  const displayEvents = limit ? approvedEvents.slice(0, limit) : approvedEvents;
 
   return (
     <section id="events" className="py-24 px-6 md:px-12 max-w-7xl mx-auto">
@@ -123,11 +146,12 @@ const BentoEvents: React.FC<BentoEventsProps> = ({ events, limit, onSeeAll, onSe
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 auto-rows-[250px] md:auto-rows-[200px]">
-        {displayEvents.map((event) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6 auto-rows-[220px] lg:auto-rows-[170px]">
+        {displayEvents.map((event, index) => (
           <BentoCard 
             key={event.id} 
             event={event} 
+            index={index}
             onSelect={onSelectEvent}
             onHover={setHoveredId}
             isHovered={hoveredId === event.id}

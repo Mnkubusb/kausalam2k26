@@ -20,7 +20,12 @@ import {
   MoreVertical,
   CheckCircle2,
 } from "lucide-react";
-import { FestEvent, TeamMember, GalleryItem, ScheduleItem } from "@/types";
+import {
+  FestEvent,
+  TeamMember,
+  GalleryItem,
+  ScheduleItem,
+} from "@/types";
 import {
   Select,
   SelectContent,
@@ -38,6 +43,12 @@ interface AdminPageProps {
 }
 
 type AdminTab = "events" | "team" | "gallery" | "schedule";
+
+const normalizeHomeGridSize = (size?: FestEvent["homeGridSize"]) => {
+  if (size === "bigger") return "large";
+  if (size === "smaller") return "auto";
+  return size || "auto";
+};
 
 const getYouTubeEmbedUrl = (url?: string) => {
   if (!url) return null;
@@ -114,6 +125,8 @@ const AdminPage: React.FC<AdminPageProps> = ({
     image: "",
     icon: "Code",
     gridSpan: "small",
+    homeGridSize: "auto",
+    homeApproved: false,
     registrationUrl: "",
   });
 
@@ -140,7 +153,6 @@ const AdminPage: React.FC<AdminPageProps> = ({
     venue: "",
     type: "Technical",
   });
-
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (password === "admin2026") setIsAuthenticated(true);
@@ -165,6 +177,8 @@ const AdminPage: React.FC<AdminPageProps> = ({
       image: "",
       icon: "Code",
       gridSpan: "small",
+      homeGridSize: "auto",
+      homeApproved: false,
       registrationUrl: "",
     });
     setTeamForm({
@@ -252,11 +266,26 @@ const AdminPage: React.FC<AdminPageProps> = ({
 
   const startEdit = (item: any) => {
     setEditingId(item.id);
-    if (activeTab === "events") setEventForm(item);
+    if (activeTab === "events") {
+      setEventForm({
+        ...item,
+        homeGridSize: normalizeHomeGridSize(item.homeGridSize),
+        homeApproved: Boolean(item.homeApproved),
+      });
+    }
     else if (activeTab === "team") setTeamForm(item);
     else if (activeTab === "gallery") setGalleryForm(item);
     else if (activeTab === "schedule") setScheduleForm(item);
     setIsAdding(true);
+  };
+
+  const handleToggleHomeApproval = async (eventId: string, approved: boolean) => {
+    try {
+      await update(ref(db, `events/${eventId}`), { homeApproved: !approved });
+    } catch (error) {
+      console.error("Error updating home approval:", error);
+      alert("Error updating home approval. Check console.");
+    }
   };
 
   if (!isAuthenticated) {
@@ -577,6 +606,25 @@ const AdminPage: React.FC<AdminPageProps> = ({
                         setEventForm({ ...eventForm, icon: v })
                       }
                     />
+                    <FormSelect
+                      label="Home Grid Size"
+                      value={normalizeHomeGridSize(eventForm.homeGridSize)}
+                      options={["auto", "small", "wide", "tall", "large"]}
+                      onChange={(v: string) =>
+                        setEventForm({
+                          ...eventForm,
+                          homeGridSize: normalizeHomeGridSize(v as FestEvent["homeGridSize"]),
+                        })
+                      }
+                    />
+                    <FormSelect
+                      label="Show On Homescreen"
+                      value={eventForm.homeApproved ? "yes" : "no"}
+                      options={["yes", "no"]}
+                      onChange={(v: string) =>
+                        setEventForm({ ...eventForm, homeApproved: v === "yes" })
+                      }
+                    />
                   </>
                 )}
 
@@ -843,12 +891,31 @@ const AdminPage: React.FC<AdminPageProps> = ({
                       {item.category || item.role || item.type}{" "}
                       {item.day && `• ${item.time}`}
                     </p>
+                    {activeTab === "events" && (
+                      <p className="text-[10px] text-gray-400 mt-1 font-bold uppercase tracking-widest">
+                        Home: {item.homeApproved ? "Approved" : "Not Approved"} • Grid: {normalizeHomeGridSize(item.homeGridSize)}
+                      </p>
+                    )}
                     <p className="text-gray-500 text-xs mt-1 truncate max-w-xs">
                       {item.venue || item.description || item.url}
                     </p>
                   </div>
                 </div>
                 <div className="flex gap-2 w-full md:w-auto">
+                  {activeTab === "events" && (
+                    <button
+                      onClick={() =>
+                        handleToggleHomeApproval(item.id, Boolean(item.homeApproved))
+                      }
+                      className={`flex-1 md:flex-none px-4 py-3 rounded-xl transition-all text-xs font-black uppercase tracking-widest ${
+                        item.homeApproved
+                          ? "bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600 hover:text-white"
+                          : "bg-white/5 text-gray-300 hover:bg-white hover:text-black"
+                      }`}
+                    >
+                      {item.homeApproved ? "Remove Home" : "Add Home"}
+                    </button>
+                  )}
                   <button
                     onClick={() => startEdit(item)}
                     className="flex-1 md:flex-none p-3 bg-white/5 text-gray-400 hover:text-white rounded-xl transition-all"

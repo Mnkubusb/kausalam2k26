@@ -19,7 +19,13 @@ interface HomePageProps {
   onNavigate: (page: Page) => void;
 }
 
-const HomePage: React.FC<HomePageProps> = ({ events, onExplore, onSelectEvent, onSeeAll, onNavigate }) => {
+const HomePage: React.FC<HomePageProps> = ({
+  events,
+  onExplore,
+  onSelectEvent,
+  onSeeAll,
+  onNavigate,
+}) => {
   return (
     <div className="overflow-hidden">
       <Hero onExplore={onExplore} />
@@ -186,9 +192,8 @@ const HomePage: React.FC<HomePageProps> = ({ events, onExplore, onSelectEvent, o
       {/* 5. Current Year Content (Bento Events) */}
       <BentoEvents 
         events={events} 
-        limit={4} 
         onSelectEvent={onSelectEvent} 
-        onSeeAll={onSeeAll} 
+        onSeeAll={onSeeAll}
       />
 
       {/* 3. Organising Committee details of current year */}
