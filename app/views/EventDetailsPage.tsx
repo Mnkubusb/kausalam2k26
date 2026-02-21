@@ -6,7 +6,7 @@ import {
   Code, Music, Trophy, Cpu, Camera, Palette, Gamepad2, BrainCircuit,
   Trophy as PrizeIcon, Users, User
 } from 'lucide-react';
-import { FestEvent } from '@/types';
+import { EventPointOfContact, FestEvent } from '@/types';
 
 const iconMap: Record<string, any> = {
   Code, Music, Trophy, Cpu, Camera, Palette, Gamepad2, BrainCircuit
@@ -20,6 +20,16 @@ const getLiveMonthLabel = (dateText: string) => {
   return `LIVE IN ${monthMatch[1].toUpperCase()}`;
 };
 
+const getPointOfContacts = (event: FestEvent): EventPointOfContact[] => {
+  if (Array.isArray(event.pointOfContacts) && event.pointOfContacts.length > 0) {
+    return event.pointOfContacts.filter((contact) => contact?.name);
+  }
+  if (event.pointOfContact) {
+    return [{ name: event.pointOfContact, phone: "", image: "" }];
+  }
+  return [];
+};
+
 interface EventDetailsPageProps {
   event: FestEvent;
   onBack: () => void;
@@ -28,6 +38,7 @@ interface EventDetailsPageProps {
 const EventDetailsPage: React.FC<EventDetailsPageProps> = ({ event, onBack }) => {
   const Icon = iconMap[event.icon] || Code;
   const liveMonthLabel = getLiveMonthLabel(event.date);
+  const contacts = getPointOfContacts(event);
 
   return (
     <motion.div 
@@ -121,13 +132,37 @@ const EventDetailsPage: React.FC<EventDetailsPageProps> = ({ event, onBack }) =>
                   <p className="text-gray-400 font-medium">{event.teamSize || "1 - 4 Members"}</p>
                 </div>
               </div>
-              <div className="p-8 rounded-[40px] bg-white/5 border border-white/10 flex items-start gap-6 group hover:border-red-500/40 transition-colors">
+              <div className="p-8 rounded-[40px] bg-white/5 border border-white/10 flex items-start gap-6 group hover:border-red-500/40 transition-colors md:col-span-2">
                 <div className="p-4 rounded-3xl bg-red-600/10 text-red-500 group-hover:scale-110 transition-transform">
                   <User size={32} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black uppercase font-space tracking-widest mb-1">Point of Contact</h3>
-                  <p className="text-gray-400 font-medium">{event.pointOfContact || "Rahul Verma (+91 90123...)"}</p>
+                  <h3 className="text-lg font-black uppercase font-space tracking-widest mb-3">Point of Contact</h3>
+                  {contacts.length > 0 ? (
+                    <div className="space-y-3">
+                      {contacts.map((contact, idx) => (
+                        <div key={`${contact.name}-${idx}`} className="flex items-center gap-3">
+                          {contact.image ? (
+                            <img
+                              src={contact.image}
+                              alt={contact.name}
+                              className="w-11 h-11 rounded-xl object-cover border border-white/10"
+                            />
+                          ) : (
+                            <div className="w-11 h-11 rounded-xl bg-white/5 border border-white/10" />
+                          )}
+                          <div>
+                            <p className="text-gray-200 font-semibold leading-tight">{contact.name}</p>
+                            {contact.phone && (
+                              <p className="text-gray-400 text-sm">{contact.phone}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-400 font-medium">Contact details will be updated soon.</p>
+                  )}
                 </div>
               </div>
             </section>

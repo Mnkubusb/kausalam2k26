@@ -19,6 +19,7 @@ export interface FestEvent {
   prizePool?: string;
   teamSize?: string;
   pointOfContact?: string;
+  pointOfContacts?: EventPointOfContact[];
   date: string;
   time: string;
   venue: string;
@@ -28,6 +29,12 @@ export interface FestEvent {
   homeGridSize?: HomeEventsGridSize;
   homeApproved?: boolean;
   registrationUrl: string;
+}
+
+export interface EventPointOfContact {
+  name: string;
+  phone?: string;
+  image?: string;
 }
 
 export interface GalleryItem {

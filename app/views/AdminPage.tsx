@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import {
   FestEvent,
+  EventPointOfContact,
   TeamMember,
   GalleryItem,
   ScheduleItem,
@@ -77,6 +78,12 @@ const getYouTubeEmbedUrl = (url?: string) => {
   }
 };
 
+const createEmptyContact = (): EventPointOfContact => ({
+  name: "",
+  phone: "",
+  image: "",
+});
+
 const AdminPage: React.FC<AdminPageProps> = ({
   events,
   team,
@@ -91,22 +98,9 @@ const AdminPage: React.FC<AdminPageProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [isEventImageDragOver, setIsEventImageDragOver] = useState(false);
   const [eventImageUploadError, setEventImageUploadError] = useState("");
+  const [contactImageUploadError, setContactImageUploadError] = useState("");
   const { startUpload, isUploading: eventImageUploading } = useUploadThing(
     "eventImageUploader",
-    {
-      onClientUploadComplete: (res) => {
-        const uploadedUrl = res?.[0]?.ufsUrl || res?.[0]?.url;
-        if (uploadedUrl) {
-          setEventForm((prev) => ({ ...prev, image: uploadedUrl }));
-          setEventImageUploadError("");
-        } else {
-          setEventImageUploadError("Upload failed. No file URL returned.");
-        }
-      },
-      onUploadError: (error) => {
-        setEventImageUploadError(error.message || "Upload failed.");
-      },
-    },
   );
 
   // Form States
@@ -119,6 +113,7 @@ const AdminPage: React.FC<AdminPageProps> = ({
     prizePool: "",
     teamSize: "",
     pointOfContact: "",
+    pointOfContacts: [],
     date: "",
     time: "",
     venue: "",
@@ -171,6 +166,7 @@ const AdminPage: React.FC<AdminPageProps> = ({
       prizePool: "",
       teamSize: "",
       pointOfContact: "",
+      pointOfContacts: [],
       date: "",
       time: "",
       venue: "",
@@ -203,6 +199,7 @@ const AdminPage: React.FC<AdminPageProps> = ({
       type: "Technical",
     });
     setEventImageUploadError("");
+    setContactImageUploadError("");
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -211,7 +208,24 @@ const AdminPage: React.FC<AdminPageProps> = ({
       const dataRef = ref(db, activeTab + (editingId ? `/${editingId}` : ""));
       let data: any;
 
-      if (activeTab === "events") data = eventForm;
+      if (activeTab === "events") {
+        const cleanedContacts = (eventForm.pointOfContacts || [])
+          .map((contact) => ({
+            name: contact.name?.trim() || "",
+            phone: contact.phone?.trim() || "",
+            image: contact.image?.trim() || "",
+          }))
+          .filter((contact) => contact.name);
+
+        data = {
+          ...eventForm,
+          pointOfContacts: cleanedContacts,
+          pointOfContact:
+            cleanedContacts[0]
+              ? `${cleanedContacts[0].name}${cleanedContacts[0].phone ? ` (${cleanedContacts[0].phone})` : ""}`
+              : eventForm.pointOfContact || "",
+        };
+      }
       else if (activeTab === "team") data = teamForm;
       else if (activeTab === "gallery") data = galleryForm;
       else if (activeTab === "schedule") data = scheduleForm;
@@ -241,12 +255,67 @@ const AdminPage: React.FC<AdminPageProps> = ({
     setEventImageUploadError("");
     try {
       const result = await startUpload([file]);
-      if (!result?.[0]?.ufsUrl && !result?.[0]?.url) {
+      const uploadedUrl = result?.[0]?.ufsUrl || result?.[0]?.url;
+      if (!uploadedUrl) {
         setEventImageUploadError("Upload failed. No file URL returned.");
+        return;
       }
+      setEventForm((prev) => ({ ...prev, image: uploadedUrl }));
     } catch (error) {
       console.error("Error uploading event image:", error);
       setEventImageUploadError("Upload failed. Check UploadThing config.");
+    }
+  };
+
+  const setPointOfContacts = (
+    updater: (contacts: EventPointOfContact[]) => EventPointOfContact[],
+  ) => {
+    setEventForm((prev) => {
+      const contacts = Array.isArray(prev.pointOfContacts)
+        ? prev.pointOfContacts
+        : [];
+      return { ...prev, pointOfContacts: updater(contacts) };
+    });
+  };
+
+  const addPointOfContact = () => {
+    setPointOfContacts((contacts) => [...contacts, createEmptyContact()]);
+  };
+
+  const updatePointOfContact = (
+    index: number,
+    field: keyof EventPointOfContact,
+    value: string,
+  ) => {
+    setPointOfContacts((contacts) =>
+      contacts.map((contact, i) =>
+        i === index ? { ...contact, [field]: value } : contact,
+      ),
+    );
+  };
+
+  const removePointOfContact = (index: number) => {
+    setPointOfContacts((contacts) => contacts.filter((_, i) => i !== index));
+  };
+
+  const handlePointOfContactImageUpload = async (index: number, file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setContactImageUploadError("Please upload a valid image file.");
+      return;
+    }
+    setContactImageUploadError("");
+    try {
+      const result = await startUpload([file]);
+      const uploadedUrl = result?.[0]?.ufsUrl || result?.[0]?.url;
+      if (!uploadedUrl) {
+        setContactImageUploadError("Upload failed. No file URL returned.");
+        return;
+      }
+      updatePointOfContact(index, "image", uploadedUrl);
+    } catch (error) {
+      console.error("Error uploading contact image:", error);
+      setContactImageUploadError("Upload failed. Check UploadThing config.");
     }
   };
 
@@ -267,10 +336,23 @@ const AdminPage: React.FC<AdminPageProps> = ({
   const startEdit = (item: any) => {
     setEditingId(item.id);
     if (activeTab === "events") {
+      const normalizedContacts: EventPointOfContact[] = Array.isArray(
+        item.pointOfContacts,
+      )
+        ? item.pointOfContacts.map((contact: EventPointOfContact) => ({
+            name: contact.name || "",
+            phone: contact.phone || "",
+            image: contact.image || "",
+          }))
+        : item.pointOfContact
+          ? [{ name: item.pointOfContact, phone: "", image: "" }]
+          : [];
+
       setEventForm({
         ...item,
         homeGridSize: normalizeHomeGridSize(item.homeGridSize),
         homeApproved: Boolean(item.homeApproved),
+        pointOfContacts: normalizedContacts,
       });
     }
     else if (activeTab === "team") setTeamForm(item);
@@ -487,15 +569,90 @@ const AdminPage: React.FC<AdminPageProps> = ({
                       placeholder="e.g. 1 - 4 Members"
                       required={false}
                     />
-                    <FormInput
-                      label="Point of Contact"
-                      value={eventForm.pointOfContact}
-                      onChange={(v: string) =>
-                        setEventForm({ ...eventForm, pointOfContact: v })
-                      }
-                      placeholder="e.g. Rahul Verma (+91 ...)"
-                      required={false}
-                    />
+                    <div className="md:col-span-2 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-black uppercase tracking-widest text-gray-500 ml-2">
+                          Points of Contact
+                        </label>
+                        <button
+                          type="button"
+                          onClick={addPointOfContact}
+                          className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-black uppercase tracking-widest text-white"
+                        >
+                          Add Contact
+                        </button>
+                      </div>
+
+                      {(eventForm.pointOfContacts || []).length === 0 && (
+                        <p className="text-xs text-gray-400 ml-2">
+                          No contact added yet.
+                        </p>
+                      )}
+
+                      {(eventForm.pointOfContacts || []).map((contact, index) => (
+                        <div
+                          key={`contact-${index}`}
+                          className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-black/30 border border-white/10 rounded-2xl"
+                        >
+                          <FormInput
+                            label={`Contact ${index + 1} Name`}
+                            value={contact.name}
+                            onChange={(v: string) =>
+                              updatePointOfContact(index, "name", v)
+                            }
+                            required={false}
+                          />
+                          <FormInput
+                            label="Phone"
+                            value={contact.phone}
+                            onChange={(v: string) =>
+                              updatePointOfContact(index, "phone", v)
+                            }
+                            placeholder="+91 98765..."
+                            required={false}
+                          />
+                          <div className="space-y-2">
+                            <label className="text-xs font-black uppercase tracking-widest text-gray-500 ml-2">
+                              Contact Photo
+                            </label>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-2xl text-sm text-white file:mr-3 file:rounded-lg file:border-0 file:bg-red-600 file:px-3 file:py-1 file:text-xs file:font-bold file:text-white hover:file:bg-red-500"
+                              onChange={(e) =>
+                                handlePointOfContactImageUpload(
+                                  index,
+                                  e.target.files?.[0],
+                                )
+                              }
+                              disabled={eventImageUploading}
+                            />
+                            {contact.image && (
+                              <img
+                                src={contact.image}
+                                alt={`Contact ${index + 1}`}
+                                className="w-20 h-20 rounded-xl object-cover border border-white/10"
+                              />
+                            )}
+                          </div>
+                          <div className="flex items-end justify-end">
+                            <button
+                              type="button"
+                              onClick={() => removePointOfContact(index)}
+                              className="px-3 py-2 rounded-xl bg-red-600/10 text-red-400 hover:bg-red-600 hover:text-white border border-red-500/20 text-xs font-black uppercase tracking-widest"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
+                      {contactImageUploadError && (
+                        <p className="text-xs text-red-500 ml-2">
+                          {contactImageUploadError}
+                        </p>
+                      )}
+                    </div>
                     <FormInput
                       label="Date"
                       value={eventForm.date}
