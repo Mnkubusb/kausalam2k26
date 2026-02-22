@@ -43,6 +43,9 @@ const AdminPage = dynamic(() => import("@/app/views/AdminPage"), {
 const GalleryPage = dynamic(() => import("@/app/views/GalleryPage"), {
   loading: () => <div className="min-h-screen flex items-center justify-center text-white">Loading...</div>
 });
+const GetPassPage = dynamic(() => import("@/app/views/GetPassPage"), {
+  loading: () => <div className="min-h-screen flex items-center justify-center text-white">Loading...</div>
+});
 
 export type Page =
   | "home"
@@ -55,7 +58,8 @@ export type Page =
   | "terms"
   | "cookies"
   | "admin"
-  | "gallery";
+  | "gallery"
+  | "getpass";
 
 interface ClientAppProps {
   initialPage?: Page;
@@ -86,7 +90,7 @@ const ClientApp: React.FC<ClientAppProps> = ({ initialPage = "home", initialEven
         if (path === "events" && eventIdFromUrl) {
             newPage = "event-details";
             setSelectedEventId(eventIdFromUrl);
-        } else if (["events", "team", "schedule", "help", "privacy", "terms", "cookies", "admin", "gallery"].includes(path)) {
+        } else if (["events", "team", "schedule", "help", "privacy", "terms", "cookies", "admin", "gallery", "getpass"].includes(path)) {
             newPage = path as Page;
         } else {
             // Handle unknown routes? defaulting to home or keeping current if we want.
@@ -194,6 +198,8 @@ const ClientApp: React.FC<ClientAppProps> = ({ initialPage = "home", initialEven
             onNavigate={navigateTo}
           />
         )}
+
+        {currentPage === "getpass" && <GetPassPage />}
 
         {currentPage === "events" && (
           <EventsPage
