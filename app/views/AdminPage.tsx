@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { db } from "@/lib/firebase";
 import { ref, push, set, remove, update } from "firebase/database";
@@ -45,6 +45,15 @@ interface AdminPageProps {
 
 type AdminTab = "events" | "team" | "gallery" | "schedule";
 
+type CropRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+const MIN_CROP_SIZE = 10;
+
 const normalizeHomeGridSize = (size?: FestEvent["homeGridSize"]) => {
   if (size === "bigger") return "large";
   if (size === "smaller") return "auto";
@@ -83,6 +92,93 @@ const createEmptyContact = (): EventPointOfContact => ({
   phone: "",
   image: "",
 });
+
+const normalizeRoleList = (role?: TeamMember["role"]): string[] => {
+  if (Array.isArray(role)) return role.map((entry) => entry.trim()).filter(Boolean);
+  if (typeof role === "string" && role.trim()) return [role.trim()];
+  return [];
+};
+
+const rolesToInputValue = (role?: TeamMember["role"]) =>
+  normalizeRoleList(role).join(", ");
+
+const parseRoleInput = (value: string): string[] =>
+  value
+    .split(/[\n,]+/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+const loadImageElement = (file: File): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Failed to read image file."));
+    };
+    image.src = objectUrl;
+  });
+
+const getCroppedImageFile = async (
+  file: File,
+  cropRect: CropRect,
+): Promise<File> => {
+  const image = await loadImageElement(file);
+  const canvas = document.createElement("canvas");
+
+  const widthRatio = cropRect.width / 100;
+  const heightRatio = cropRect.height / 100;
+  const xRatio = cropRect.x / 100;
+  const yRatio = cropRect.y / 100;
+
+  const sourceWidth = Math.max(1, Math.round(image.width * widthRatio));
+  const sourceHeight = Math.max(1, Math.round(image.height * heightRatio));
+  const sourceX = Math.min(
+    image.width - sourceWidth,
+    Math.max(0, Math.round(image.width * xRatio)),
+  );
+  const sourceY = Math.min(
+    image.height - sourceHeight,
+    Math.max(0, Math.round(image.height * yRatio)),
+  );
+
+  canvas.width = sourceWidth;
+  canvas.height = sourceHeight;
+
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Failed to crop image.");
+
+  context.drawImage(
+    image,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    0,
+    0,
+    sourceWidth,
+    sourceHeight,
+  );
+
+  const mimeType = file.type || "image/jpeg";
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, mimeType, 0.92),
+  );
+  if (!blob) throw new Error("Failed to encode cropped image.");
+
+  const nameWithoutExtension = file.name.replace(/\.[^/.]+$/, "");
+  const extension = mimeType.split("/")[1] || "jpg";
+  const croppedName = `${nameWithoutExtension}-cropped.${extension}`;
+
+  return new File([blob], croppedName, {
+    type: mimeType,
+    lastModified: Date.now(),
+  });
+};
 
 const AdminPage: React.FC<AdminPageProps> = ({
   events,
@@ -227,7 +323,12 @@ const AdminPage: React.FC<AdminPageProps> = ({
               : eventForm.pointOfContact || "",
         };
       }
-      else if (activeTab === "team") data = teamForm;
+      else if (activeTab === "team") {
+        data = {
+          ...teamForm,
+          role: parseRoleInput(rolesToInputValue(teamForm.role)),
+        };
+      }
       else if (activeTab === "gallery") data = galleryForm;
       else if (activeTab === "schedule") data = scheduleForm;
 
@@ -377,7 +478,12 @@ const AdminPage: React.FC<AdminPageProps> = ({
         pointOfContacts: normalizedContacts,
       });
     }
-    else if (activeTab === "team") setTeamForm(item);
+    else if (activeTab === "team") {
+      setTeamForm({
+        ...item,
+        role: normalizeRoleList(item.role),
+      });
+    }
     else if (activeTab === "gallery") setGalleryForm(item);
     else if (activeTab === "schedule") setScheduleForm(item);
     setIsAdding(true);
@@ -757,13 +863,13 @@ const AdminPage: React.FC<AdminPageProps> = ({
                       }
                       required={true}
                     />
-                    <FormInput
-                      label="Role"
-                      value={teamForm.role}
+                    <FormTextarea
+                      label="Roles"
+                      value={rolesToInputValue(teamForm.role)}
                       onChange={(v: string) =>
-                        setTeamForm({ ...teamForm, role: v })
+                        setTeamForm({ ...teamForm, role: parseRoleInput(v) })
                       }
-                      required={false}
+                      rows={3}
                     />
                     <FormSelect
                       label="Category"
@@ -1014,7 +1120,11 @@ const AdminPage: React.FC<AdminPageProps> = ({
                       {item.name || item.title || item.day}
                     </h3>
                     <p className="text-red-500 text-[10px] font-black uppercase tracking-widest">
-                      {item.category || item.role || item.type}{" "}
+                      {item.category ||
+                        (Array.isArray(item.role)
+                          ? item.role.join(" • ")
+                          : item.role) ||
+                        item.type}{" "}
                       {item.day && `• ${item.time}`}
                     </p>
                     {activeTab === "events" && (
@@ -1124,6 +1234,82 @@ const ImageDropzone = ({
   onFileSelect: (file?: File) => void;
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingPreviewUrl, setPendingPreviewUrl] = useState("");
+  const [cropError, setCropError] = useState("");
+  const [isCropping, setIsCropping] = useState(false);
+  const [isProcessingCrop, setIsProcessingCrop] = useState(false);
+  const [cropRect, setCropRect] = useState<CropRect>({
+    x: 10,
+    y: 10,
+    width: 80,
+    height: 80,
+  });
+
+  const clearPendingFile = () => {
+    if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl);
+    setPendingFile(null);
+    setPendingPreviewUrl("");
+    setCropRect({ x: 10, y: 10, width: 80, height: 80 });
+    setIsCropping(false);
+    setCropError("");
+    setIsProcessingCrop(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl);
+    };
+  }, [pendingPreviewUrl]);
+
+  const clampCropRect = (next: CropRect): CropRect => {
+    const width = Math.min(100, Math.max(MIN_CROP_SIZE, next.width));
+    const height = Math.min(100, Math.max(MIN_CROP_SIZE, next.height));
+    const x = Math.min(100 - width, Math.max(0, next.x));
+    const y = Math.min(100 - height, Math.max(0, next.y));
+    return { x, y, width, height };
+  };
+
+  const updateCropRect = (field: keyof CropRect, value: number) => {
+    setCropRect((prev) => clampCropRect({ ...prev, [field]: value }));
+  };
+
+  const prepareFile = (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setCropError("Please upload a valid image file.");
+      return;
+    }
+    setCropError("");
+    if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl);
+    const previewUrl = URL.createObjectURL(file);
+    setPendingFile(file);
+    setPendingPreviewUrl(previewUrl);
+    setIsCropping(false);
+    setCropRect({ x: 10, y: 10, width: 80, height: 80 });
+  };
+
+  const uploadFullImage = () => {
+    if (!pendingFile) return;
+    onFileSelect(pendingFile);
+    clearPendingFile();
+  };
+
+  const applyCropAndUpload = async () => {
+    if (!pendingFile) return;
+    setCropError("");
+    setIsProcessingCrop(true);
+    try {
+      const croppedFile = await getCroppedImageFile(pendingFile, cropRect);
+      onFileSelect(croppedFile);
+      clearPendingFile();
+    } catch (error) {
+      console.error("Error cropping image:", error);
+      setCropError("Failed to crop image. Please try a different file.");
+    } finally {
+      setIsProcessingCrop(false);
+    }
+  };
 
   return (
     <div className={`space-y-2 ${className}`}>
@@ -1146,7 +1332,7 @@ const ImageDropzone = ({
           e.preventDefault();
           setIsDragOver(false);
           if (disabled) return;
-          onFileSelect(e.dataTransfer.files?.[0]);
+          prepareFile(e.dataTransfer.files?.[0]);
         }}
       >
         <input
@@ -1154,14 +1340,51 @@ const ImageDropzone = ({
           type="file"
           accept="image/*"
           className="hidden"
-          onChange={(e) => onFileSelect(e.target.files?.[0])}
+          onChange={(e) => {
+            prepareFile(e.target.files?.[0]);
+            e.currentTarget.value = "";
+          }}
           disabled={disabled}
         />
         <p className="text-sm text-white font-semibold">Drag and drop image here</p>
         <p className="text-xs text-gray-400 mt-1">or click to browse files</p>
       </label>
+      {pendingFile && (
+        <div className="p-4 rounded-2xl border border-white/10 bg-black/30 space-y-3">
+          <p className="text-xs text-gray-400 break-all">
+            Selected: <span className="text-white">{pendingFile.name}</span>
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={uploadFullImage}
+              disabled={disabled || uploading || isProcessingCrop}
+              className="px-4 py-2 rounded-xl bg-red-600 text-white hover:bg-red-500 transition-colors text-xs font-black uppercase tracking-widest disabled:opacity-60"
+            >
+              Upload Full Image
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsCropping(true)}
+              disabled={disabled || uploading || isProcessingCrop}
+              className="px-4 py-2 rounded-xl border border-white/20 text-white hover:border-white/40 transition-colors text-xs font-black uppercase tracking-widest disabled:opacity-60"
+            >
+              Crop Image
+            </button>
+            <button
+              type="button"
+              onClick={clearPendingFile}
+              disabled={isProcessingCrop}
+              className="px-4 py-2 rounded-xl border border-red-500/20 text-red-400 hover:bg-red-600 hover:text-white transition-colors text-xs font-black uppercase tracking-widest disabled:opacity-60"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
       {uploading && <p className="text-xs text-gray-400 ml-2">Uploading image...</p>}
       {error && <p className="text-xs text-red-500 ml-2">{error}</p>}
+      {cropError && <p className="text-xs text-red-500 ml-2">{cropError}</p>}
       {previewUrl && (
         <div className="pt-2">
           <p className="text-xs text-gray-400 ml-2 mb-2">{previewLabel}</p>
@@ -1172,6 +1395,136 @@ const ImageDropzone = ({
           />
         </div>
       )}
+      <AnimatePresence>
+        {isCropping && pendingFile && pendingPreviewUrl && (
+          <motion.div
+            className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm p-4 flex items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-3xl border border-white/10 bg-zinc-950 p-6 space-y-4"
+              initial={{ y: 24, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 24, opacity: 0 }}
+            >
+              <div className="flex items-center justify-between gap-4">
+                <h3 className="text-white font-black uppercase tracking-widest text-sm">
+                  Crop Image
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setIsCropping(false)}
+                  disabled={isProcessingCrop}
+                  className="p-2 rounded-lg border border-white/10 text-gray-300 hover:text-white"
+                  aria-label="Close crop modal"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-white/10 bg-black/40">
+                  <img
+                    src={pendingPreviewUrl}
+                    alt="Crop preview"
+                    className="w-full h-full object-contain select-none"
+                    draggable={false}
+                  />
+                  <div
+                    className="absolute border-2 border-red-500 shadow-[0_0_0_9999px_rgba(0,0,0,0.45)] pointer-events-none"
+                    style={{
+                      left: `${cropRect.x}%`,
+                      top: `${cropRect.y}%`,
+                      width: `${cropRect.width}%`,
+                      height: `${cropRect.height}%`,
+                    }}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-gray-500">
+                      Horizontal Position ({Math.round(cropRect.x)}%)
+                    </label>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100 - cropRect.width}
+                      value={cropRect.x}
+                      onChange={(e) => updateCropRect("x", Number(e.target.value))}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-gray-500">
+                      Vertical Position ({Math.round(cropRect.y)}%)
+                    </label>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100 - cropRect.height}
+                      value={cropRect.y}
+                      onChange={(e) => updateCropRect("y", Number(e.target.value))}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-gray-500">
+                      Crop Width ({Math.round(cropRect.width)}%)
+                    </label>
+                    <input
+                      type="range"
+                      min={MIN_CROP_SIZE}
+                      max={100 - cropRect.x}
+                      value={cropRect.width}
+                      onChange={(e) =>
+                        updateCropRect("width", Number(e.target.value))
+                      }
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-gray-500">
+                      Crop Height ({Math.round(cropRect.height)}%)
+                    </label>
+                    <input
+                      type="range"
+                      min={MIN_CROP_SIZE}
+                      max={100 - cropRect.y}
+                      value={cropRect.height}
+                      onChange={(e) =>
+                        updateCropRect("height", Number(e.target.value))
+                      }
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsCropping(false)}
+                  disabled={isProcessingCrop}
+                  className="px-4 py-2 rounded-xl border border-white/20 text-white hover:border-white/40 transition-colors text-xs font-black uppercase tracking-widest disabled:opacity-60"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={applyCropAndUpload}
+                  disabled={uploading || isProcessingCrop}
+                  className="px-4 py-2 rounded-xl bg-red-600 text-white hover:bg-red-500 transition-colors text-xs font-black uppercase tracking-widest disabled:opacity-60"
+                >
+                  {isProcessingCrop ? "Processing..." : "Apply Crop & Upload"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

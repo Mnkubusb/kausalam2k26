@@ -58,9 +58,9 @@ const EventsPage: React.FC<EventsPageProps> = ({ events, onSelectEvent }) => {
       </div>
 
       {/* Search & Filter Bar */}
-      <div className="flex flex-col md:flex-row gap-6 mb-12 relative top-24 z-40 bg-[#050505]/80 backdrop-blur-xl p-4 rounded-3xl border border-white/5">
+      <div className="flex flex-col md:flex-row gap-6 mb-12 relative top-8 z-40 bg-[#050505]/80 backdrop-blur-xl p-4 rounded-3xl border border-white/5">
         <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
+          <Search className="absolute left-4 top-1/4 -translate-y-1/2 text-gray-500" size={20} />
           <input 
             type="text"
             placeholder="Search events..."

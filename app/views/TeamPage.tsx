@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Github, Linkedin, Twitter, Instagram, Globe, Mail, Users } from 'lucide-react';
+import { Github, Linkedin, Twitter, Instagram, Users, Search, X } from 'lucide-react';
 import { TeamMember } from '@/types';
 
 const CATEGORIES = [
@@ -16,6 +16,25 @@ const CATEGORIES = [
   'Decoration',
   'Food Court',
 ];
+
+const getRoleList = (role: TeamMember['role']) => {
+  if (Array.isArray(role)) return role.filter(Boolean);
+  return role ? [role] : [];
+};
+
+const formatRoles = (role: TeamMember['role']) => getRoleList(role).join(' • ');
+
+const matchesTeamSearch = (member: TeamMember, query: string) => {
+  if (!query) return true;
+  const haystack = [
+    member.name,
+    member.category,
+    ...getRoleList(member.role),
+  ]
+    .join(' ')
+    .toLowerCase();
+  return haystack.includes(query);
+};
 
 const TeamCard: React.FC<{ member: TeamMember; index: number }> = ({ member, index }) => {
   return (
@@ -68,7 +87,7 @@ const TeamCard: React.FC<{ member: TeamMember; index: number }> = ({ member, ind
             {member.name}
           </h3>
           <p className="text-gray-400 text-sm font-bold uppercase tracking-widest opacity-80">
-            {member.role}
+            {formatRoles(member.role)}
           </p>
         </div>
       </div>
@@ -81,8 +100,8 @@ interface TeamPageProps {
   loading?: boolean;
 }
 
-const getRolePriority = (role: string) => {
-  const normalized = role.toLowerCase();
+const getRolePriority = (role: TeamMember['role']) => {
+  const normalized = getRoleList(role)[0]?.toLowerCase() || '';
   if (normalized.includes('president') && !normalized.includes('vice')) return 0;
   if (normalized.includes('vice president')) return 1;
   if (normalized.includes('secretary') && !normalized.includes('joint')) return 2;
@@ -92,16 +111,31 @@ const getRolePriority = (role: string) => {
 
 const TeamPage: React.FC<TeamPageProps> = ({ team, loading = false }) => {
   const [activeCategory, setActiveCategory] = useState('All');
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   
   const displayTeam = team || [];
 
   const filteredTeam = displayTeam
     .filter(member => activeCategory === 'All' || member.category === activeCategory)
+    .filter((member) => matchesTeamSearch(member, searchQuery))
     .sort((a, b) => {
       const roleDiff = getRolePriority(a.role) - getRolePriority(b.role);
       if (roleDiff !== 0) return roleDiff;
       return a.name.localeCompare(b.name);
     });
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearchQuery(searchInput.trim().toLowerCase());
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+
+  const handleReset = () => {
+    setSearchInput('');
+    setSearchQuery('');
+  };
 
   return (
     <div className="min-h-screen pt-12 pb-24 px-6 md:px-12 max-w-7xl mx-auto">
@@ -133,8 +167,27 @@ const TeamPage: React.FC<TeamPageProps> = ({ team, loading = false }) => {
       </div>
 
       {/* Filter Bar */}
-      <div className="mb-16 w-full">
-        <div className="flex flex-wrap gap-2 bg-white/5 p-2 rounded-3xl border border-white/5 backdrop-blur-xl w-full">
+      <div className="mb-8 w-full">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3 mb-4">
+          <div className="relative">
+            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-red-400/80" />
+            <input
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search by name, role, or category"
+              className="w-full pl-11 pr-4 py-4 rounded-2xl bg-black/40 border border-white/10 text-white placeholder:text-gray-500 focus:outline-none focus:border-red-500 transition-colors font-semibold"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={handleReset}
+            className="md:col-start-3 px-6 py-4 rounded-2xl border border-white/15 text-gray-300 hover:text-white hover:border-red-500/50 transition-colors text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2"
+          >
+            <X size={14} /> Reset
+          </button>
+        </div>
+        <div className="overflow-x-auto brand-scrollbar bg-white/5 p-2 rounded-3xl border border-white/5 backdrop-blur-xl w-full">
+          <div className="flex flex-nowrap gap-2 w-max min-w-full pr-1">
           {CATEGORIES.map((cat) => (
             <button
               key={cat}
@@ -148,6 +201,7 @@ const TeamPage: React.FC<TeamPageProps> = ({ team, loading = false }) => {
               {cat}
             </button>
           ))}
+          </div>
         </div>
       </div>
 
@@ -166,7 +220,7 @@ const TeamPage: React.FC<TeamPageProps> = ({ team, loading = false }) => {
         </div>
       ) : (
         <div className="text-center py-20 text-gray-400 uppercase tracking-widest text-xs font-bold">
-          Team data is not available yet.
+          {displayTeam.length > 0 ? 'No team members matched your filters.' : 'Team data is not available yet.'}
         </div>
       )}
 

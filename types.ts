@@ -57,7 +57,7 @@ export interface GalleryItem {
 export interface TeamMember {
   id: string;
   name: string;
-  role: string;
+  role: string | string[];
   category: string;
   image: string;
   links?: {

@@ -61,8 +61,15 @@ const isLikelyImageUrl = (url?: string) => {
   );
 };
 
-const getRolePriority = (role: string) => {
-  const normalized = role.toLowerCase();
+const getRoleList = (role: TeamMember['role']) => {
+  if (Array.isArray(role)) return role.filter(Boolean);
+  return role ? [role] : [];
+};
+
+const formatRoles = (role: TeamMember['role']) => getRoleList(role).join(' • ');
+
+const getRolePriority = (role: TeamMember['role']) => {
+  const normalized = getRoleList(role)[0]?.toLowerCase() || '';
   if (normalized.includes('president') && !normalized.includes('vice')) return 0;
   if (normalized.includes('vice president')) return 1;
   if (normalized.includes('secretary') && !normalized.includes('joint')) return 2;
@@ -298,7 +305,7 @@ const HomePage: React.FC<HomePageProps> = ({
                 )}
               </div>
               <h5 className="font-bold text-white uppercase text-sm font-space">{member.name}</h5>
-              <p className="text-red-500 text-[10px] font-black uppercase tracking-widest">{member.role}</p>
+              <p className="text-red-500 text-[10px] font-black uppercase tracking-widest">{formatRoles(member.role)}</p>
             </motion.div>
           ))}
         </div>
