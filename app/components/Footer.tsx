@@ -25,8 +25,19 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             The flagship annual college festival of Government Engineering College Bilaspur. A testament to engineering, creativity, and the pursuit of excellence.
           </p>
           <div className="flex gap-4">
-            {[Instagram, Twitter, Linkedin, Facebook].map((Icon, i) => (
-              <a key={i} href="#" className="p-2.5 bg-white/5 rounded-xl text-gray-400 hover:text-red-500 hover:bg-white/10 transition-all">
+            {[
+              { Icon: Instagram, href: "https://www.instagram.com/kaushalam_/?hl=en" },
+              { Icon: Twitter, href: "#" },
+              { Icon: Linkedin, href: "#" },
+              { Icon: Facebook, href: "http://facebook.com/kaushalam.gecb/" },
+            ].map(({ Icon, href }, i) => (
+              <a
+                key={i}
+                href={href}
+                target={href.startsWith("http") ? "_blank" : undefined}
+                rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
+                className="p-2.5 bg-white/5 rounded-xl text-gray-400 hover:text-red-500 hover:bg-white/10 transition-all"
+              >
                 <Icon size={20} />
               </a>
             ))}

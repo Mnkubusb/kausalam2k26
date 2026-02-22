@@ -265,12 +265,14 @@ const GalleryPage: React.FC<GalleryPageProps> = ({ gallery }) => {
         <div className="flex flex-wrap justify-center gap-6">
           {[
             { Icon: Youtube, label: 'YouTube', color: 'bg-red-600', link: '#' },
-            { Icon: Instagram, label: 'Instagram', color: 'bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888]', link: '#' },
-            { Icon: Facebook, label: 'Facebook', color: 'bg-blue-600', link: '#' },
+            { Icon: Instagram, label: 'Instagram', color: 'bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888]', link: 'https://www.instagram.com/kaushalam_/?hl=en' },
+            { Icon: Facebook, label: 'Facebook', color: 'bg-blue-600', link: 'http://facebook.com/kaushalam.gecb/' },
           ].map((item, i) => (
             <a 
               key={i} 
               href={item.link} 
+              target={item.link.startsWith("http") ? "_blank" : undefined}
+              rel={item.link.startsWith("http") ? "noopener noreferrer" : undefined}
               className={`px-10 py-5 ${item.color} text-white font-black rounded-3xl hover:scale-105 transition-all flex items-center gap-3 shadow-xl uppercase font-space text-sm`}
             >
               <item.Icon size={20} /> {item.label}

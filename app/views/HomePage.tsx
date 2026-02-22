@@ -337,8 +337,8 @@ const HomePage: React.FC<HomePageProps> = ({
             <div className="flex gap-4">
               {[
                 { Icon: Youtube, color: 'bg-[#FF0000]', link: 'https://youtube.com/playlist?list=PL8jgKl0L1BqJXF6k8xiFjOTfJ8yc9h5Xb&si=y03psid1SQRH2Lav' },
-                { Icon: Instagram, color: 'bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888]', link: 'https://www.instagram.com/kaushalam_/' },
-                { Icon: Facebook, color: 'bg-[#1877F2]', link: 'https://www.facebook.com/kaushalam.gecb/' },
+                { Icon: Instagram, color: 'bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888]', link: 'https://www.instagram.com/kaushalam_/?hl=en' },
+                { Icon: Facebook, color: 'bg-[#1877F2]', link: 'http://facebook.com/kaushalam.gecb/' },
                 { Icon: Twitter, color: 'bg-[#1DA1F2]', link: '#' }
               ].map((item, i) => (
                 <a 
