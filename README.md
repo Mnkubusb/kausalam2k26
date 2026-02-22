@@ -72,6 +72,24 @@
 
     Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+### Seed Team Data From Excel
+
+If you have the team workbook (for example `KAUSHALAM final.xlsx`) in project root:
+
+```bash
+# Preview parsed members without writing to Firebase
+npm run seed:team:xlsx:dry
+
+# Seed into Realtime Database path /team
+npm run seed:team:xlsx
+```
+
+You can also pass a custom file path:
+
+```bash
+bash -lc 'set -a; source .env; set +a; node scripts/seed-team-from-xlsx.mjs \"path/to/file.xlsx\"'
+```
+
 ## 📂 Project Structure
 
 ```

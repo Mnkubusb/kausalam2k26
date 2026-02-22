@@ -6,7 +6,7 @@ import {
   MessageCircle, Youtube, Instagram, Facebook, Twitter,
   Heart, Award, Star, ArrowRight, Camera, GraduationCap
 } from 'lucide-react';
-import { FestEvent, GalleryItem } from '@/types';
+import { FestEvent, GalleryItem, TeamMember } from '@/types';
 import { type Page } from '@/app/ClientApp';
 import Hero from '@/app/components/Hero';
 import BentoEvents from '@/app/components/BentoEvents';
@@ -14,6 +14,7 @@ import BentoEvents from '@/app/components/BentoEvents';
 interface HomePageProps {
   events: FestEvent[];
   gallery: GalleryItem[];
+  team: TeamMember[];
   onExplore: () => void;
   onSelectEvent: (id: string) => void;
   onSeeAll?: () => void;
@@ -60,9 +61,19 @@ const isLikelyImageUrl = (url?: string) => {
   );
 };
 
+const getRolePriority = (role: string) => {
+  const normalized = role.toLowerCase();
+  if (normalized.includes('president') && !normalized.includes('vice')) return 0;
+  if (normalized.includes('vice president')) return 1;
+  if (normalized.includes('secretary') && !normalized.includes('joint')) return 2;
+  if (normalized.includes('joint secretary')) return 3;
+  return 99;
+};
+
 const HomePage: React.FC<HomePageProps> = ({
   events,
   gallery,
+  team,
   onExplore,
   onSelectEvent,
   onSeeAll,
@@ -85,6 +96,14 @@ const HomePage: React.FC<HomePageProps> = ({
             'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=2070&auto=format&fit=crop',
       }))
     : fallbackGallery;
+
+  const coreCouncil = team
+    .filter((member) => member.category.toLowerCase() === 'core')
+    .sort((a, b) => {
+      const roleDiff = getRolePriority(a.role) - getRolePriority(b.role);
+      if (roleDiff !== 0) return roleDiff;
+      return a.name.localeCompare(b.name);
+    });
 
   return (
     <div className="overflow-hidden">
@@ -260,16 +279,9 @@ const HomePage: React.FC<HomePageProps> = ({
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-          {[
-            { name: 'Sneha R.', role: 'President', img: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=1974&auto=format&fit=crop' },
-            { name: 'Rahul V.', role: 'Tech Head', img: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=1974&auto=format&fit=crop' },
-            { name: 'Ananya S.', role: 'Cultural Head', img: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1974&auto=format&fit=crop' },
-            { name: 'Vikram D.', role: 'PR Head', img: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=1974&auto=format&fit=crop' },
-            { name: 'Ishita K.', role: 'Design Head', img: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=1974&auto=format&fit=crop' },
-            { name: 'Aryan M.', role: 'Sponsorship', img: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=1974&auto=format&fit=crop' }
-          ].map((member, i) => (
+          {coreCouncil.slice(0, 6).map((member, i) => (
             <motion.div 
-              key={i}
+              key={member.id}
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
@@ -277,7 +289,13 @@ const HomePage: React.FC<HomePageProps> = ({
               className="text-center group"
             >
               <div className="aspect-square rounded-full overflow-hidden border border-white/10 mb-4 p-1 group-hover:border-red-500/50 transition-colors">
-                <img src={member.img} className="w-full h-full object-cover rounded-full grayscale group-hover:grayscale-0 transition-all duration-500" alt={member.name} />
+                {member.image ? (
+                  <img src={member.image} className="w-full h-full object-cover rounded-full grayscale group-hover:grayscale-0 transition-all duration-500" alt={member.name} />
+                ) : (
+                  <div className="w-full h-full rounded-full bg-white/5 flex items-center justify-center text-red-500/60">
+                    <Users size={28} />
+                  </div>
+                )}
               </div>
               <h5 className="font-bold text-white uppercase text-sm font-space">{member.name}</h5>
               <p className="text-red-500 text-[10px] font-black uppercase tracking-widest">{member.role}</p>
@@ -295,7 +313,6 @@ const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* 6. Social Media Hub */}
       {/* 7. Contact Details */}
       <section className="py-32 px-6">
         <div className="max-w-4xl mx-auto rounded-[60px] bg-white p-12 md:p-24 text-black text-center relative overflow-hidden shadow-2xl shadow-white/5">
@@ -319,9 +336,9 @@ const HomePage: React.FC<HomePageProps> = ({
             </a>
             <div className="flex gap-4">
               {[
-                { Icon: Youtube, color: 'bg-[#FF0000]', link: '#' },
-                { Icon: Instagram, color: 'bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888]', link: '#' },
-                { Icon: Facebook, color: 'bg-[#1877F2]', link: '#' },
+                { Icon: Youtube, color: 'bg-[#FF0000]', link: 'https://youtube.com/playlist?list=PL8jgKl0L1BqJXF6k8xiFjOTfJ8yc9h5Xb&si=y03psid1SQRH2Lav' },
+                { Icon: Instagram, color: 'bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888]', link: 'https://www.instagram.com/kaushalam_/' },
+                { Icon: Facebook, color: 'bg-[#1877F2]', link: 'https://www.facebook.com/kaushalam.gecb/' },
                 { Icon: Twitter, color: 'bg-[#1DA1F2]', link: '#' }
               ].map((item, i) => (
                 <a 

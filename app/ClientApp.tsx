@@ -13,7 +13,7 @@ import {
   GalleryItem,
   ScheduleItem,
 } from "@/types";
-import { EVENTS as STATIC_EVENTS, TEAM_MEMBERS as STATIC_TEAM } from "@/constants";
+import { EVENTS as STATIC_EVENTS } from "@/constants";
 
 // Dynamic imports for code splitting
 const HomePage = dynamic(() => import("@/app/views/HomePage"), {
@@ -70,6 +70,7 @@ const ClientApp: React.FC<ClientAppProps> = ({ initialPage = "home", initialEven
   const [selectedEventId, setSelectedEventId] = useState<string | null>(initialEventId);
   const [events, setEvents] = useState<FestEvent[]>([]);
   const [team, setTeam] = useState<TeamMember[]>([]);
+  const [teamLoading, setTeamLoading] = useState(true);
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -138,7 +139,10 @@ const ClientApp: React.FC<ClientAppProps> = ({ initialPage = "home", initialEven
         if (data) {
           const fetched: TeamMember[] = Object.keys(data).map((key) => ({ id: key, ...data[key] }));
           setTeam(fetched);
-        } else setTeam(STATIC_TEAM);
+        } else {
+          setTeam([]);
+        }
+        setTeamLoading(false);
       }),
       onValue(refs.gallery, (snapshot) => {
         const data = snapshot.val();
@@ -183,6 +187,7 @@ const ClientApp: React.FC<ClientAppProps> = ({ initialPage = "home", initialEven
           <HomePage
             events={events}
             gallery={gallery}
+            team={team}
             onExplore={() => navigateTo("events")}
             onSelectEvent={(id) => navigateTo("event-details", id)}
             onSeeAll={() => navigateTo("events")}
@@ -212,7 +217,7 @@ const ClientApp: React.FC<ClientAppProps> = ({ initialPage = "home", initialEven
              </div>
         )}
 
-        {currentPage === "team" && <TeamPage team={team} />}
+        {currentPage === "team" && <TeamPage team={team} loading={teamLoading} />}
 
         {currentPage === "gallery" && <GalleryPage gallery={gallery} />}
 

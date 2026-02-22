@@ -55,7 +55,7 @@ export const EVENTS: FestEvent[] = [
   {
     id: '4',
     name: 'Cyber Strike',
-    category: 'Sports',
+    category: 'Fun Events',
     description: 'Competitive e-sports tournament.',
     longDescription: 'Valorant and CS2 tournaments with pro-level casting and exciting prizes.',
     date: 'March 12-13, 2026',
@@ -83,7 +83,7 @@ export const EVENTS: FestEvent[] = [
   {
     id: '6',
     name: 'AI Workshop',
-    category: 'Workshops',
+    category: 'Pre Events',
     description: 'Master the future of GenAI.',
     longDescription: 'Hands-on training session with industry experts on LLMs and diffusion models.',
     date: 'March 14, 2026',

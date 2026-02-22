@@ -7,12 +7,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed:schedule": "bash -lc 'set -a; source .env; set +a; node scripts/seed-mock-schedule.mjs'"
+    "seed:schedule": "bash -lc 'set -a; source .env; set +a; node scripts/seed-mock-schedule.mjs'",
+    "seed:team:xlsx": "bash -lc 'set -a; source .env; set +a; node scripts/seed-team-from-xlsx.mjs \"KAUSHALAM final.xlsx\"'",
+    "seed:team:xlsx:dry": "node scripts/seed-team-from-xlsx.mjs \"KAUSHALAM final.xlsx\" --dry-run"
   },
   "dependencies": {
-    "@uploadthing/react": "^7.0.0",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.4",
+    "@uploadthing/react": "^7.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "firebase": "^12.8.0",

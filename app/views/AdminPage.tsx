@@ -96,8 +96,8 @@ const AdminPage: React.FC<AdminPageProps> = ({
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isEventImageDragOver, setIsEventImageDragOver] = useState(false);
   const [eventImageUploadError, setEventImageUploadError] = useState("");
+  const [teamImageUploadError, setTeamImageUploadError] = useState("");
   const [contactImageUploadError, setContactImageUploadError] = useState("");
   const { startUpload, isUploading: eventImageUploading } = useUploadThing(
     "eventImageUploader",
@@ -199,6 +199,7 @@ const AdminPage: React.FC<AdminPageProps> = ({
       type: "Technical",
     });
     setEventImageUploadError("");
+    setTeamImageUploadError("");
     setContactImageUploadError("");
   };
 
@@ -264,6 +265,27 @@ const AdminPage: React.FC<AdminPageProps> = ({
     } catch (error) {
       console.error("Error uploading event image:", error);
       setEventImageUploadError("Upload failed. Check UploadThing config.");
+    }
+  };
+
+  const handleTeamImageUpload = async (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setTeamImageUploadError("Please upload a valid image file.");
+      return;
+    }
+    setTeamImageUploadError("");
+    try {
+      const result = await startUpload([file]);
+      const uploadedUrl = result?.[0]?.ufsUrl || result?.[0]?.url;
+      if (!uploadedUrl) {
+        setTeamImageUploadError("Upload failed. No file URL returned.");
+        return;
+      }
+      setTeamForm((prev) => ({ ...prev, image: uploadedUrl }));
+    } catch (error) {
+      console.error("Error uploading team image:", error);
+      setTeamImageUploadError("Upload failed. Check UploadThing config.");
     }
   };
 
@@ -518,9 +540,12 @@ const AdminPage: React.FC<AdminPageProps> = ({
                       options={[
                         "Technical",
                         "Cultural",
-                        "Sports",
-                        "Workshops",
+                        "Pre Events",
                         "Fun Events",
+                        "Literary",
+                        "Color & Craft Carnival",
+                        "Decoration",
+                        "Food Court",
                       ]}
                       onChange={(v: string) =>
                         setEventForm({ ...eventForm, category: v as any })
@@ -611,30 +636,18 @@ const AdminPage: React.FC<AdminPageProps> = ({
                             placeholder="+91 98765..."
                             required={false}
                           />
-                          <div className="space-y-2">
-                            <label className="text-xs font-black uppercase tracking-widest text-gray-500 ml-2">
-                              Contact Photo
-                            </label>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-2xl text-sm text-white file:mr-3 file:rounded-lg file:border-0 file:bg-red-600 file:px-3 file:py-1 file:text-xs file:font-bold file:text-white hover:file:bg-red-500"
-                              onChange={(e) =>
-                                handlePointOfContactImageUpload(
-                                  index,
-                                  e.target.files?.[0],
-                                )
-                              }
-                              disabled={eventImageUploading}
-                            />
-                            {contact.image && (
-                              <img
-                                src={contact.image}
-                                alt={`Contact ${index + 1}`}
-                                className="w-20 h-20 rounded-xl object-cover border border-white/10"
-                              />
-                            )}
-                          </div>
+                          <ImageDropzone
+                            label="Contact Photo"
+                            inputId={`contact-image-upload-${index}`}
+                            disabled={eventImageUploading}
+                            uploading={eventImageUploading}
+                            error={contactImageUploadError}
+                            previewUrl={contact.image}
+                            previewAlt={`Contact ${index + 1}`}
+                            onFileSelect={(file) =>
+                              handlePointOfContactImageUpload(index, file)
+                            }
+                          />
                           <div className="flex items-end justify-end">
                             <button
                               type="button"
@@ -676,69 +689,18 @@ const AdminPage: React.FC<AdminPageProps> = ({
                         setEventForm({ ...eventForm, venue: v })
                       }
                     />
-                    <div className="md:col-span-2 space-y-2">
-                      <label className="text-xs font-black uppercase tracking-widest text-gray-500 ml-2">
-                        Upload Event Image
-                      </label>
-                      <label
-                        htmlFor="event-image-upload"
-                        className={`block w-full p-6 border-2 border-dashed rounded-2xl transition-colors cursor-pointer ${
-                          isEventImageDragOver
-                            ? "border-red-500 bg-red-600/10"
-                            : "border-white/10 bg-black/40 hover:border-white/20"
-                        } ${eventImageUploading ? "opacity-70 cursor-not-allowed" : ""}`}
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          if (!eventImageUploading) setIsEventImageDragOver(true);
-                        }}
-                        onDragLeave={() => setIsEventImageDragOver(false)}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          setIsEventImageDragOver(false);
-                          if (eventImageUploading) return;
-                          handleEventImageUpload(e.dataTransfer.files?.[0]);
-                        }}
-                      >
-                        <input
-                          id="event-image-upload"
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) =>
-                            handleEventImageUpload(e.target.files?.[0])
-                          }
-                          disabled={eventImageUploading}
-                        />
-                        <p className="text-sm text-white font-semibold">
-                          Drag and drop image here
-                        </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          or click to browse files
-                        </p>
-                      </label>
-                      {eventImageUploading && (
-                        <p className="text-xs text-gray-400 ml-2">
-                          Uploading image...
-                        </p>
-                      )}
-                      {eventImageUploadError && (
-                        <p className="text-xs text-red-500 ml-2">
-                          {eventImageUploadError}
-                        </p>
-                      )}
-                      {eventForm.image && (
-                        <div className="pt-2">
-                          <p className="text-xs text-gray-400 ml-2 mb-2">
-                            Current Thumbnail
-                          </p>
-                          <img
-                            src={eventForm.image}
-                            alt="Event thumbnail preview"
-                            className="w-40 h-28 object-cover rounded-xl border border-white/10"
-                          />
-                        </div>
-                      )}
-                    </div>
+                    <ImageDropzone
+                      className="md:col-span-2"
+                      label="Upload Event Image"
+                      inputId="event-image-upload"
+                      disabled={eventImageUploading}
+                      uploading={eventImageUploading}
+                      error={eventImageUploadError}
+                      previewUrl={eventForm.image}
+                      previewAlt="Event thumbnail preview"
+                      previewLabel="Current Thumbnail"
+                      onFileSelect={handleEventImageUpload}
+                    />
                     <FormInput
                       label="Registration URL"
                       value={eventForm.registrationUrl}
@@ -810,21 +772,28 @@ const AdminPage: React.FC<AdminPageProps> = ({
                         "Core",
                         "Technical",
                         "Cultural",
-                        "Creative",
-                        "Publicity",
-                        "Operations",
+                        "Pre Events",
+                        "Fun Events",
+                        "Literary",
+                        "Color & Craft Carnival",
+                        "Decoration",
+                        "Food Court",
                       ]}
                       onChange={(v: string) =>
                         setTeamForm({ ...teamForm, category: v })
                       }
                     />
-                    <FormInput
-                      label="Image URL"
-                      value={teamForm.image}
-                      onChange={(v: string) =>
-                        setTeamForm({ ...teamForm, image: v })
-                      }
-                      required={false}
+                    <ImageDropzone
+                      className="md:col-span-2"
+                      label="Upload Team Image"
+                      inputId="team-image-upload"
+                      disabled={eventImageUploading}
+                      uploading={eventImageUploading}
+                      error={teamImageUploadError}
+                      previewUrl={teamForm.image}
+                      previewAlt="Team image preview"
+                      previewLabel="Current Team Photo"
+                      onFileSelect={handleTeamImageUpload}
                     />
                     <FormInput
                       label="LinkedIn"
@@ -1130,6 +1099,82 @@ const FormInput = ({
     />
   </div>
 );
+
+const ImageDropzone = ({
+  className = "",
+  label,
+  inputId,
+  disabled = false,
+  uploading = false,
+  error = "",
+  previewUrl,
+  previewAlt,
+  previewLabel = "Current Image",
+  onFileSelect,
+}: {
+  className?: string;
+  label: string;
+  inputId: string;
+  disabled?: boolean;
+  uploading?: boolean;
+  error?: string;
+  previewUrl?: string;
+  previewAlt: string;
+  previewLabel?: string;
+  onFileSelect: (file?: File) => void;
+}) => {
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  return (
+    <div className={`space-y-2 ${className}`}>
+      <label className="text-xs font-black uppercase tracking-widest text-gray-500 ml-2">
+        {label}
+      </label>
+      <label
+        htmlFor={inputId}
+        className={`block w-full p-6 border-2 border-dashed rounded-2xl transition-colors cursor-pointer ${
+          isDragOver
+            ? "border-red-500 bg-red-600/10"
+            : "border-white/10 bg-black/40 hover:border-white/20"
+        } ${disabled ? "opacity-70 cursor-not-allowed" : ""}`}
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!disabled) setIsDragOver(true);
+        }}
+        onDragLeave={() => setIsDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragOver(false);
+          if (disabled) return;
+          onFileSelect(e.dataTransfer.files?.[0]);
+        }}
+      >
+        <input
+          id={inputId}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => onFileSelect(e.target.files?.[0])}
+          disabled={disabled}
+        />
+        <p className="text-sm text-white font-semibold">Drag and drop image here</p>
+        <p className="text-xs text-gray-400 mt-1">or click to browse files</p>
+      </label>
+      {uploading && <p className="text-xs text-gray-400 ml-2">Uploading image...</p>}
+      {error && <p className="text-xs text-red-500 ml-2">{error}</p>}
+      {previewUrl && (
+        <div className="pt-2">
+          <p className="text-xs text-gray-400 ml-2 mb-2">{previewLabel}</p>
+          <img
+            src={previewUrl}
+            alt={previewAlt}
+            className="w-40 h-28 object-cover rounded-xl border border-white/10"
+          />
+        </div>
+      )}
+    </div>
+  );
+};
 
 const FormTextarea = ({
   label,

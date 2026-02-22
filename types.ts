@@ -1,5 +1,13 @@
 
-export type EventCategory = 'Technical' | 'Cultural' | 'Sports' | 'Workshops' | 'Fun Events';
+export type EventCategory =
+  | 'Technical'
+  | 'Cultural'
+  | 'Pre Events'
+  | 'Fun Events'
+  | 'Literary'
+  | 'Color & Craft Carnival'
+  | 'Decoration'
+  | 'Food Court';
 export type HomeEventsGridSize =
   | 'auto'
   | 'small'

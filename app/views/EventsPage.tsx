@@ -8,7 +8,17 @@ const iconMap: Record<string, any> = {
   Code, Music, Trophy, Cpu, Camera, Palette, Gamepad2, BrainCircuit
 };
 
-const CATEGORIES: (EventCategory | 'All')[] = ['All', 'Technical', 'Cultural', 'Sports', 'Workshops', 'Fun Events'];
+const CATEGORIES: (EventCategory | 'All')[] = [
+  'All',
+  'Technical',
+  'Cultural',
+  'Pre Events',
+  'Fun Events',
+  'Literary',
+  'Color & Craft Carnival',
+  'Decoration',
+  'Food Court',
+];
 
 interface EventsPageProps {
   events: FestEvent[];
@@ -60,7 +70,7 @@ const EventsPage: React.FC<EventsPageProps> = ({ events, onSelectEvent }) => {
           />
         </div>
         
-        <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+        <div className="flex flex-wrap gap-2 md:flex-1 md:min-w-0">
           {CATEGORIES.map((cat) => (
             <button
               key={cat}

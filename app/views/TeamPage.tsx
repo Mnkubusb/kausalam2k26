@@ -3,9 +3,19 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Github, Linkedin, Twitter, Instagram, Globe, Mail, Users } from 'lucide-react';
 import { TeamMember } from '@/types';
-import { TEAM_MEMBERS as STATIC_TEAM } from '@/constants';
 
-const CATEGORIES = ['All', 'Core', 'Technical', 'Cultural', 'Creative', 'Publicity', 'Operations'];
+const CATEGORIES = [
+  'All',
+  'Core',
+  'Technical',
+  'Cultural',
+  'Pre Events',
+  'Fun Events',
+  'Literary',
+  'Color & Craft Carnival',
+  'Decoration',
+  'Food Court',
+];
 
 const TeamCard: React.FC<{ member: TeamMember; index: number }> = ({ member, index }) => {
   return (
@@ -68,16 +78,30 @@ const TeamCard: React.FC<{ member: TeamMember; index: number }> = ({ member, ind
 
 interface TeamPageProps {
   team?: TeamMember[];
+  loading?: boolean;
 }
 
-const TeamPage: React.FC<TeamPageProps> = ({ team }) => {
+const getRolePriority = (role: string) => {
+  const normalized = role.toLowerCase();
+  if (normalized.includes('president') && !normalized.includes('vice')) return 0;
+  if (normalized.includes('vice president')) return 1;
+  if (normalized.includes('secretary') && !normalized.includes('joint')) return 2;
+  if (normalized.includes('joint secretary')) return 3;
+  return 99;
+};
+
+const TeamPage: React.FC<TeamPageProps> = ({ team, loading = false }) => {
   const [activeCategory, setActiveCategory] = useState('All');
   
-  const displayTeam = team && team.length > 0 ? team : STATIC_TEAM;
+  const displayTeam = team || [];
 
-  const filteredTeam = displayTeam.filter(member => 
-    activeCategory === 'All' || member.category === activeCategory
-  );
+  const filteredTeam = displayTeam
+    .filter(member => activeCategory === 'All' || member.category === activeCategory)
+    .sort((a, b) => {
+      const roleDiff = getRolePriority(a.role) - getRolePriority(b.role);
+      if (roleDiff !== 0) return roleDiff;
+      return a.name.localeCompare(b.name);
+    });
 
   return (
     <div className="min-h-screen pt-12 pb-24 px-6 md:px-12 max-w-7xl mx-auto">
@@ -109,8 +133,8 @@ const TeamPage: React.FC<TeamPageProps> = ({ team }) => {
       </div>
 
       {/* Filter Bar */}
-      <div className="flex justify-center mb-16">
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide bg-white/5 p-2 rounded-3xl border border-white/5 backdrop-blur-xl">
+      <div className="mb-16 w-full">
+        <div className="flex flex-wrap gap-2 bg-white/5 p-2 rounded-3xl border border-white/5 backdrop-blur-xl w-full">
           {CATEGORIES.map((cat) => (
             <button
               key={cat}
@@ -128,11 +152,23 @@ const TeamPage: React.FC<TeamPageProps> = ({ team }) => {
       </div>
 
       {/* Team Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-        {filteredTeam.map((member, idx) => (
-          <TeamCard key={member.id} member={member} index={idx} />
-        ))}
-      </div>
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {Array.from({ length: 8 }).map((_, idx) => (
+            <div key={idx} className="relative aspect-4/5 rounded-[40px] overflow-hidden bg-white/5 border border-white/10 animate-pulse" />
+          ))}
+        </div>
+      ) : filteredTeam.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {filteredTeam.map((member, idx) => (
+            <TeamCard key={member.id} member={member} index={idx} />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-20 text-gray-400 uppercase tracking-widest text-xs font-bold">
+          Team data is not available yet.
+        </div>
+      )}
 
       {/* Join the Team CTA */}
       <motion.div 
