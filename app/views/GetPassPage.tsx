@@ -272,7 +272,7 @@ const GetPassPage: React.FC = () => {
     <div className="min-h-screen pt-24 pb-12 px-6 max-w-5xl mx-auto flex flex-col items-center justify-center relative z-10">
       
       {/* Hidden Canvas always rendered but hidden until needed */}
-      <div className="absolute opacity-0 pointer-events-none">
+      <div className="absolute opacity-0 pointer-events-none overflow-x-hidden">
          <canvas ref={canvasRef} />
       </div>
 
