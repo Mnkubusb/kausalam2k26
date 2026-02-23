@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Sparkles, Target, Zap, Users, Play, ExternalLink, 
@@ -75,6 +75,32 @@ const getRolePriority = (role: TeamMember['role']) => {
   if (normalized.includes('secretary') && !normalized.includes('joint')) return 2;
   if (normalized.includes('joint secretary')) return 3;
   return 99;
+};
+
+const getInitials = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || '')
+    .join('');
+
+const FacultyAvatar: React.FC<{ name: string; img?: string }> = ({ name, img }) => {
+  const [hasImageError, setHasImageError] = useState(false);
+  const showImage = Boolean(img) && !hasImageError;
+
+  return showImage ? (
+    <img
+      src={img}
+      onError={() => setHasImageError(true)}
+      className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all"
+      alt={name}
+    />
+  ) : (
+    <div className="w-full h-full bg-red-600/15 border border-red-500/30 text-red-300 flex items-center justify-center font-black text-3xl tracking-widest">
+      {getInitials(name)}
+    </div>
+  );
 };
 
 const HomePage: React.FC<HomePageProps> = ({
@@ -206,9 +232,9 @@ const HomePage: React.FC<HomePageProps> = ({
             </motion.div>
 
             {[
-              { name: 'Dr. Aryan Sharma', role: 'Head of Technical Committee', img: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=2070&auto=format&fit=crop' },
-              { name: 'Prof. Meera Iyer', role: 'Head of Cultural Affairs', img: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1976&auto=format&fit=crop' },
-              { name: 'Dr. Vikram Malhotra', role: 'General Coordinator', img: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=1974&auto=format&fit=crop' }
+              { name: 'G. K Agarwal', role: 'Kaushalam Sanyojak and HOD MECH', img: '/agarwal.jpeg' },
+              { name: 'A. K. Upadhyay', role: 'Kaushalam Sanyojak and HOD IT', img: '/upadhay.jpeg' },
+              { name: 'Seema Chauhan', role: 'Kaushalam Sanyojak and HOD CIVIL', img: '' }
             ].map((faculty, i) => (
               <motion.div 
                 key={i}
@@ -219,9 +245,9 @@ const HomePage: React.FC<HomePageProps> = ({
                 className="p-8 rounded-[40px] bg-white/5 border border-white/5 text-center group hover:border-red-500/20 transition-all"
               >
                 <div className="w-32 h-32 rounded-3xl overflow-hidden mx-auto mb-6 group-hover:scale-105 transition-transform duration-500">
-                  <img src={faculty.img} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all" alt={faculty.name} />
+                  <FacultyAvatar name={faculty.name} img={faculty.img} />
                 </div>
-                <h4 className="text-xl font-black font-space uppercase text-white mb-1">{faculty.name}</h4>
+                <h4 className="text-xl font-black font-space  text-white mb-1"> Dr. {faculty.name.toLocaleUpperCase()}</h4>
                 <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">{faculty.role}</p>
               </motion.div>
             ))}
@@ -334,7 +360,7 @@ const HomePage: React.FC<HomePageProps> = ({
           
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
             <a 
-              href="https://whatsapp.com/channel/dummy-gecb" 
+              href="https://chat.whatsapp.com/IZBgTyOhbAxBTrlOgIcA6G" 
               target="_blank"
               rel="noopener noreferrer"
               className="px-10 py-5 bg-[#25D366] text-white font-black rounded-3xl hover:bg-[#128C7E] transition-all flex items-center gap-3 transform hover:scale-105 active:scale-95 shadow-xl shadow-green-500/20 uppercase font-space"

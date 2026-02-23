@@ -1,4 +1,6 @@
-import React, { useState, useRef } from 'react';
+"use client";
+
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Sparkles, CheckCircle2 } from 'lucide-react';
 
@@ -12,6 +14,13 @@ interface PassData {
 }
 
 type Stage = 'form' | 'generating' | 'complete';
+type StoredPassResponse = {
+  pass: {
+    formData: PassData;
+    passImage: string;
+    updatedAt: number;
+  } | null;
+};
 
 const GetPassPage: React.FC = () => {
   const [formData, setFormData] = useState<PassData>({
@@ -24,8 +33,34 @@ const GetPassPage: React.FC = () => {
   });
   const [errors, setErrors] = useState<Partial<PassData>>({});
   const [stage, setStage] = useState<Stage>('form');
+  const [restoring, setRestoring] = useState(true);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const passImageRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const restoreSavedPass = async () => {
+      try {
+        const response = await fetch('/api/pass', { cache: 'no-store' });
+        if (!response.ok) return;
+        const data = (await response.json()) as StoredPassResponse;
+        if (cancelled || !data.pass) return;
+        setFormData(data.pass.formData);
+        passImageRef.current = data.pass.passImage;
+        setStage('complete');
+      } catch (error) {
+        console.error('Failed to restore saved pass:', error);
+      } finally {
+        if (!cancelled) setRestoring(false);
+      }
+    };
+
+    restoreSavedPass();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const validate = () => {
     const newErrors: Partial<PassData> = {};
@@ -215,6 +250,13 @@ const GetPassPage: React.FC = () => {
      const dataUrl = canvas.toDataURL('image/png');
      passImageRef.current = dataUrl;
      setStage('complete');
+     fetch('/api/pass', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ formData, passImage: dataUrl }),
+     }).catch((error) => {
+      console.error('Failed to persist pass:', error);
+     });
   };
 
   const downloadPass = () => {
@@ -230,10 +272,24 @@ const GetPassPage: React.FC = () => {
     <div className="min-h-screen pt-24 pb-12 px-6 max-w-5xl mx-auto flex flex-col items-center justify-center relative z-10">
       
       {/* Hidden Canvas always rendered but hidden until needed */}
-      <div className="absolute opacity-0 pointer-events-none">
+      <div className="absolute opacity-0 pointer-events-none overflow-x-hidden">
          <canvas ref={canvasRef} />
       </div>
 
+      {restoring ? (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center justify-center py-20"
+        >
+          <div className="relative w-24 h-24 mb-8">
+            <div className="absolute inset-0 border-4 border-white/10 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-t-red-600 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+          </div>
+          <h2 className="text-2xl font-black font-space uppercase tracking-widest animate-pulse">Checking Your Pass...</h2>
+          <p className="text-gray-500 mt-2 font-mono text-sm">Looking for your saved pass.</p>
+        </motion.div>
+      ) : (
       <AnimatePresence mode="wait">
         
         {/* STAGE 1: FORM */}
@@ -422,6 +478,7 @@ const GetPassPage: React.FC = () => {
         )}
 
       </AnimatePresence>
+      )}
     </div>
   );
 };

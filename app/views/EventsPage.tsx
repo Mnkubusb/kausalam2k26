@@ -60,8 +60,8 @@ const EventsPage: React.FC<EventsPageProps> = ({ events, onSelectEvent }) => {
       {/* Search & Filter Bar */}
       <div className="flex flex-col md:flex-row gap-6 mb-12 relative top-8 z-40 bg-[#050505]/80 backdrop-blur-xl p-4 rounded-3xl border border-white/5">
         <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/4 -translate-y-1/2 text-gray-500" size={20} />
-          <input 
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
+        <input 
             type="text"
             placeholder="Search events..."
             value={searchQuery}
@@ -70,20 +70,22 @@ const EventsPage: React.FC<EventsPageProps> = ({ events, onSelectEvent }) => {
           />
         </div>
         
-        <div className="flex flex-wrap gap-2 md:flex-1 md:min-w-0">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`px-6 py-4 rounded-2xl font-bold whitespace-nowrap transition-all uppercase tracking-widest text-xs border ${
-                activeCategory === cat 
-                  ? 'bg-red-600 text-white border-red-600 shadow-lg shadow-red-600/20' 
-                  : 'bg-white/5 text-gray-400 border-white/10 hover:border-white/20'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
+        <div className="md:flex-1 md:min-w-0 overflow-x-auto brand-scrollbar">
+          <div className="flex flex-nowrap gap-2 w-max min-w-full pr-1">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`px-6 py-4 rounded-2xl font-bold whitespace-nowrap transition-all uppercase tracking-widest text-xs border ${
+                  activeCategory === cat 
+                    ? 'bg-red-600 text-white border-red-600 shadow-lg shadow-red-600/20' 
+                    : 'bg-white/5 text-gray-400 border-white/10 hover:border-white/20'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
