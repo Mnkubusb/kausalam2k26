@@ -22,7 +22,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedule }) => {
           animate={{ opacity: 1, y: 0 }}
           className="text-5xl md:text-9xl font-black mb-6 font-space uppercase tracking-tighter"
         >
-          THE <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-rose-500">SCHEDULE</span>
+          THE <span className="text-transparent bg-clip-text bg-linear-to-r from-red-600 to-rose-500">SCHEDULE</span>
         </motion.h1>
         <p className="text-gray-400 text-lg max-w-2xl mx-auto">
           Don't miss a beat. Plan your three days of innovation and excitement.
@@ -49,7 +49,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedule }) => {
       </div>
 
       {/* Timeline */}
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeDay}
@@ -65,18 +65,18 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedule }) => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.1 }}
                 key={item.id || idx}
-                className="group relative flex gap-8 items-center"
+                className="group relative flex gap-8 items-center mr-20"
               >
                 {/* Time */}
-                <div className="w-24 text-right hidden sm:block">
+                <div className="w-24 text-right hidden sm:block mr-10">
                   <span className="text-red-500 font-black font-space whitespace-nowrap">{item.time}</span>
                 </div>
                 
                 {/* Divider */}
-                <div className="relative flex flex-col items-center">
+                <div className="relative flex flex-col items-center ">
                   <div className="w-4 h-4 rounded-full bg-red-600 ring-4 ring-red-600/20 z-10" />
                   {idx !== filteredSchedule.length - 1 && (
-                    <div className="w-0.5 flex-1 bg-gradient-to-b from-red-600 to-transparent absolute top-4 h-[calc(100%+1.5rem)]" />
+                    <div className="w-0.5 flex-1 bg-linear-to-b from-red-600 to-transparent absolute top-4 h-[calc(100%+1.5rem)]" />
                   )}
                 </div>
 

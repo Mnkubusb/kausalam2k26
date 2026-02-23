@@ -7,6 +7,7 @@ import { TeamMember } from '@/types';
 const CATEGORIES = [
   'All',
   'Core',
+  'Faculty Coordinators',
   'Technical',
   'Cultural',
   'Pre Events',
@@ -237,7 +238,7 @@ const TeamPage: React.FC<TeamPageProps> = ({ team, loading = false }) => {
           We're always looking for passionate volunteers and coordinators. Be part of the team that builds the future.
         </p>
         <button className="px-10 py-5 bg-white text-black font-black rounded-3xl hover:bg-red-600 hover:text-white transition-all transform hover:scale-105 active:scale-95 shadow-2xl">
-          Volunteer Registration
+          Better Luck Next Time !
         </button>
       </motion.div>
     </div>

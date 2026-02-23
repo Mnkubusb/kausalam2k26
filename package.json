@@ -9,7 +9,9 @@
     "lint": "eslint",
     "seed:schedule": "bash -lc 'set -a; source .env; set +a; node scripts/seed-mock-schedule.mjs'",
     "seed:team:xlsx": "bash -lc 'set -a; source .env; set +a; node scripts/seed-team-from-xlsx.mjs \"KAUSHALAM final.xlsx\"'",
-    "seed:team:xlsx:dry": "node scripts/seed-team-from-xlsx.mjs \"KAUSHALAM final.xlsx\" --dry-run"
+    "seed:team:xlsx:dry": "node scripts/seed-team-from-xlsx.mjs \"KAUSHALAM final.xlsx\" --dry-run",
+    "seed:team:faculty": "bash -lc 'set -a; source .env; set +a; node scripts/seed-team-faculty.mjs'",
+    "seed:team:faculty:dry": "node scripts/seed-team-faculty.mjs --dry-run"
   },
   "dependencies": {
     "@radix-ui/react-select": "^2.2.6",

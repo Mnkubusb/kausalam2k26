@@ -919,6 +919,7 @@ const AdminPage: React.FC<AdminPageProps> = ({
                       value={teamForm.category}
                       options={[
                         "Core",
+                        "Faculty Coordinators",
                         "Technical",
                         "Cultural",
                         "Pre Events",

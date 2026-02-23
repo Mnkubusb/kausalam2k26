@@ -88,6 +88,8 @@ def normalize_category(section_name: str) -> str:
         return "Color & Craft Carnival"
     if "food court" in sec:
         return "Food Court"
+    if "faculty" in sec and "coordinator" in sec:
+        return "Faculty Coordinators"
     if "decoration" in sec:
         return "Decoration"
     if "literary" in sec:
