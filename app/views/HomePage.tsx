@@ -224,7 +224,7 @@ const HomePage: React.FC<HomePageProps> = ({
               </div>
               <div className="text-center md:text-left">
                 <p className="text-red-500 font-black tracking-[0.4em] uppercase text-xs mb-2">Respected Principal, GEC Bilaspur</p>
-                <h3 className="text-4xl md:text-6xl font-black font-space uppercase mb-6 tracking-tighter">Dr. S.K SINGHAI</h3>
+                <h3 className="text-4xl md:text-6xl font-black font-space mb-6 tracking-tighter">Dr. S.K SINGHAI</h3>
                 <p className="text-gray-400 text-lg leading-relaxed italic font-medium">
                   "Kaushalam is a testament to the holistic development we strive for at Government Engineering College Bilaspur. It is heartening to see our students bridge the gap between classroom theory and real-world application with such vigor. I invite every participant to discover their true potential here."
                 </p>
