@@ -43,6 +43,7 @@ export interface EventPointOfContact {
   name: string;
   phone?: string;
   image?: string;
+  teamMemberId?: string;
 }
 
 export interface GalleryItem {

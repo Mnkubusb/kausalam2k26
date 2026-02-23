@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Cropper, { type Area, type Point } from "react-easy-crop";
 import { db } from "@/lib/firebase";
 import { ref, push, set, remove, update } from "firebase/database";
 import { useUploadThing } from "@/lib/uploadthing";
@@ -45,15 +46,6 @@ interface AdminPageProps {
 
 type AdminTab = "events" | "team" | "gallery" | "schedule";
 
-type CropRect = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-};
-
-const MIN_CROP_SIZE = 10;
-
 const normalizeHomeGridSize = (size?: FestEvent["homeGridSize"]) => {
   if (size === "bigger") return "large";
   if (size === "smaller") return "auto";
@@ -91,6 +83,7 @@ const createEmptyContact = (): EventPointOfContact => ({
   name: "",
   phone: "",
   image: "",
+  teamMemberId: "",
 });
 
 const normalizeRoleList = (role?: TeamMember["role"]): string[] => {
@@ -98,6 +91,19 @@ const normalizeRoleList = (role?: TeamMember["role"]): string[] => {
   if (typeof role === "string" && role.trim()) return [role.trim()];
   return [];
 };
+
+const formatTeamRoles = (role?: TeamMember["role"]) => {
+  const roles = normalizeRoleList(role);
+  return roles.join(", ");
+};
+
+const CROP_ASPECT_PRESETS = [
+  { label: "1:1", value: 1 },
+  { label: "4:3", value: 4 / 3 },
+  { label: "16:9", value: 16 / 9 },
+  { label: "3:4", value: 3 / 4 },
+  { label: "9:16", value: 9 / 16 },
+] as const;
 
 const rolesToInputValue = (role?: TeamMember["role"]) =>
   normalizeRoleList(role).join(", ");
@@ -125,29 +131,33 @@ const loadImageElement = (file: File): Promise<HTMLImageElement> =>
 
 const getCroppedImageFile = async (
   file: File,
-  cropRect: CropRect,
+  croppedAreaPixels: Area,
+  outputDimensions?: { width: number; height: number },
 ): Promise<File> => {
   const image = await loadImageElement(file);
   const canvas = document.createElement("canvas");
 
-  const widthRatio = cropRect.width / 100;
-  const heightRatio = cropRect.height / 100;
-  const xRatio = cropRect.x / 100;
-  const yRatio = cropRect.y / 100;
-
-  const sourceWidth = Math.max(1, Math.round(image.width * widthRatio));
-  const sourceHeight = Math.max(1, Math.round(image.height * heightRatio));
+  const sourceWidth = Math.min(
+    image.width,
+    Math.max(1, Math.round(croppedAreaPixels.width)),
+  );
+  const sourceHeight = Math.min(
+    image.height,
+    Math.max(1, Math.round(croppedAreaPixels.height)),
+  );
   const sourceX = Math.min(
     image.width - sourceWidth,
-    Math.max(0, Math.round(image.width * xRatio)),
+    Math.max(0, Math.round(croppedAreaPixels.x)),
   );
   const sourceY = Math.min(
     image.height - sourceHeight,
-    Math.max(0, Math.round(image.height * yRatio)),
+    Math.max(0, Math.round(croppedAreaPixels.y)),
   );
 
-  canvas.width = sourceWidth;
-  canvas.height = sourceHeight;
+  const targetWidth = outputDimensions?.width || sourceWidth;
+  const targetHeight = outputDimensions?.height || sourceHeight;
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
 
   const context = canvas.getContext("2d");
   if (!context) throw new Error("Failed to crop image.");
@@ -160,8 +170,8 @@ const getCroppedImageFile = async (
     sourceHeight,
     0,
     0,
-    sourceWidth,
-    sourceHeight,
+    targetWidth,
+    targetHeight,
   );
 
   const mimeType = file.type || "image/jpeg";
@@ -194,10 +204,10 @@ const AdminPage: React.FC<AdminPageProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [eventImageUploadError, setEventImageUploadError] = useState("");
   const [teamImageUploadError, setTeamImageUploadError] = useState("");
-  const [contactImageUploadError, setContactImageUploadError] = useState("");
   const { startUpload, isUploading: eventImageUploading } = useUploadThing(
     "eventImageUploader",
   );
+  const teamById = new Map(team.map((member) => [member.id, member]));
 
   // Form States
   const [eventForm, setEventForm] = useState<Partial<FestEvent>>({
@@ -296,7 +306,6 @@ const AdminPage: React.FC<AdminPageProps> = ({
     });
     setEventImageUploadError("");
     setTeamImageUploadError("");
-    setContactImageUploadError("");
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -307,11 +316,17 @@ const AdminPage: React.FC<AdminPageProps> = ({
 
       if (activeTab === "events") {
         const cleanedContacts = (eventForm.pointOfContacts || [])
-          .map((contact) => ({
-            name: contact.name?.trim() || "",
-            phone: contact.phone?.trim() || "",
-            image: contact.image?.trim() || "",
-          }))
+          .map((contact) => {
+            const selectedCoordinator = contact.teamMemberId
+              ? teamById.get(contact.teamMemberId)
+              : undefined;
+            return {
+              teamMemberId: selectedCoordinator?.id || "",
+              name: selectedCoordinator?.name || contact.name?.trim() || "",
+              phone: contact.phone?.trim() || "",
+              image: selectedCoordinator?.image || contact.image?.trim() || "",
+            };
+          })
           .filter((contact) => contact.name);
 
         data = {
@@ -417,29 +432,27 @@ const AdminPage: React.FC<AdminPageProps> = ({
     );
   };
 
-  const removePointOfContact = (index: number) => {
-    setPointOfContacts((contacts) => contacts.filter((_, i) => i !== index));
+  const selectPointOfContactCoordinator = (
+    index: number,
+    teamMemberId: string,
+  ) => {
+    const selected = teamById.get(teamMemberId);
+    setPointOfContacts((contacts) =>
+      contacts.map((contact, i) =>
+        i !== index
+          ? contact
+          : {
+              ...contact,
+              teamMemberId,
+              name: selected?.name || "",
+              image: selected?.image || "",
+            },
+      ),
+    );
   };
 
-  const handlePointOfContactImageUpload = async (index: number, file?: File) => {
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setContactImageUploadError("Please upload a valid image file.");
-      return;
-    }
-    setContactImageUploadError("");
-    try {
-      const result = await startUpload([file]);
-      const uploadedUrl = result?.[0]?.ufsUrl || result?.[0]?.url;
-      if (!uploadedUrl) {
-        setContactImageUploadError("Upload failed. No file URL returned.");
-        return;
-      }
-      updatePointOfContact(index, "image", uploadedUrl);
-    } catch (error) {
-      console.error("Error uploading contact image:", error);
-      setContactImageUploadError("Upload failed. Check UploadThing config.");
-    }
+  const removePointOfContact = (index: number) => {
+    setPointOfContacts((contacts) => contacts.filter((_, i) => i !== index));
   };
 
   const handleDelete = async (id: string) => {
@@ -462,13 +475,23 @@ const AdminPage: React.FC<AdminPageProps> = ({
       const normalizedContacts: EventPointOfContact[] = Array.isArray(
         item.pointOfContacts,
       )
-        ? item.pointOfContacts.map((contact: EventPointOfContact) => ({
-            name: contact.name || "",
-            phone: contact.phone || "",
-            image: contact.image || "",
-          }))
+        ? item.pointOfContacts.map((contact: EventPointOfContact) => {
+            const matchedTeamMember = contact.teamMemberId
+              ? teamById.get(contact.teamMemberId)
+              : team.find(
+                  (member) =>
+                    member.name.trim().toLowerCase() ===
+                    (contact.name || "").trim().toLowerCase(),
+                );
+            return {
+              name: matchedTeamMember?.name || contact.name || "",
+              phone: contact.phone || "",
+              image: matchedTeamMember?.image || contact.image || "",
+              teamMemberId: matchedTeamMember?.id || contact.teamMemberId || "",
+            };
+          })
         : item.pointOfContact
-          ? [{ name: item.pointOfContact, phone: "", image: "" }]
+          ? [{ name: item.pointOfContact, phone: "", image: "", teamMemberId: "" }]
           : [];
 
       setEventForm({
@@ -725,14 +748,24 @@ const AdminPage: React.FC<AdminPageProps> = ({
                           key={`contact-${index}`}
                           className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-black/30 border border-white/10 rounded-2xl"
                         >
-                          <FormInput
-                            label={`Contact ${index + 1} Name`}
-                            value={contact.name}
-                            onChange={(v: string) =>
-                              updatePointOfContact(index, "name", v)
-                            }
-                            required={false}
-                          />
+                          <div className="space-y-2">
+                            <label className="text-xs font-black uppercase tracking-widest text-gray-500 ml-2">
+                              {`Contact ${index + 1} Coordinator`}
+                            </label>
+                            <CoordinatorSelect
+                              value={contact.teamMemberId || "none"}
+                              team={team}
+                              onValueChange={(value: string) =>
+                                selectPointOfContactCoordinator(
+                                  index,
+                                  value === "none" ? "" : value,
+                                )
+                              }
+                            />
+                            <p className="text-[10px] text-gray-500 ml-2 uppercase tracking-widest font-bold">
+                              Coordinator photo and name are pulled from Team.
+                            </p>
+                          </div>
                           <FormInput
                             label="Phone"
                             value={contact.phone}
@@ -742,18 +775,34 @@ const AdminPage: React.FC<AdminPageProps> = ({
                             placeholder="+91 98765..."
                             required={false}
                           />
-                          <ImageDropzone
-                            label="Contact Photo"
-                            inputId={`contact-image-upload-${index}`}
-                            disabled={eventImageUploading}
-                            uploading={eventImageUploading}
-                            error={contactImageUploadError}
-                            previewUrl={contact.image}
-                            previewAlt={`Contact ${index + 1}`}
-                            onFileSelect={(file) =>
-                              handlePointOfContactImageUpload(index, file)
-                            }
-                          />
+                          <div className="space-y-2">
+                            <label className="text-xs font-black uppercase tracking-widest text-gray-500 ml-2">
+                              Contact Preview
+                            </label>
+                            <div className="flex items-center gap-3 px-4 py-3 bg-black/40 border border-white/10 rounded-2xl min-h-[70px]">
+                              {contact.image ? (
+                                <img
+                                  src={contact.image}
+                                  alt={contact.name || `Contact ${index + 1}`}
+                                  className="w-12 h-12 rounded-xl object-cover border border-white/10"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-500 text-xs font-black">
+                                  N/A
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <p className="text-sm font-bold text-white truncate">
+                                  {contact.name || "Select a coordinator"}
+                                </p>
+                                {contact.teamMemberId && (
+                                  <p className="text-[10px] text-red-400 uppercase tracking-widest font-black">
+                                    Team Linked
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
                           <div className="flex items-end justify-end">
                             <button
                               type="button"
@@ -765,12 +814,6 @@ const AdminPage: React.FC<AdminPageProps> = ({
                           </div>
                         </div>
                       ))}
-
-                      {contactImageUploadError && (
-                        <p className="text-xs text-red-500 ml-2">
-                          {contactImageUploadError}
-                        </p>
-                      )}
                     </div>
                     <FormInput
                       label="Date"
@@ -1210,6 +1253,68 @@ const FormInput = ({
   </div>
 );
 
+const CoordinatorSelect = ({
+  value,
+  team,
+  onValueChange,
+}: {
+  value: string;
+  team: TeamMember[];
+  onValueChange: (value: string) => void;
+}) => {
+  const [searchValue, setSearchValue] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+
+  const normalizedQuery = searchValue.trim().toLowerCase();
+  const filteredTeam = team
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .filter((member) => {
+      if (!normalizedQuery) return true;
+      const searchText = `${member.name} ${member.category} ${formatTeamRoles(member.role)}`.toLowerCase();
+      return searchText.includes(normalizedQuery);
+    });
+
+  return (
+    <Select
+      value={value}
+      onValueChange={onValueChange}
+      open={isOpen}
+      onOpenChange={(open) => {
+        setIsOpen(open);
+        if (!open) setSearchValue("");
+      }}
+    >
+      <SelectTrigger className="w-full px-6 py-4 h-auto bg-black/40 border border-white/10 rounded-2xl focus:ring-0 focus:border-red-500 transition-colors text-white">
+        <SelectValue placeholder="Select from team" />
+      </SelectTrigger>
+      <SelectContent className="bg-black/90 border border-white/10 text-white backdrop-blur-xl max-h-72">
+        <div className="sticky top-0 z-10 px-2 py-2 bg-black/95 border-b border-white/10">
+          <input
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            onKeyDown={(e) => e.stopPropagation()}
+            placeholder="Search coordinator..."
+            className="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-lg text-xs text-white placeholder:text-gray-500 focus:outline-none focus:border-red-500"
+          />
+        </div>
+        <SelectItem value="none">
+          Select from team
+        </SelectItem>
+        {filteredTeam.map((member) => (
+          <SelectItem key={member.id} value={member.id}>
+            {member.name}
+            {formatTeamRoles(member.role) ? ` (${formatTeamRoles(member.role)})` : ""}
+          </SelectItem>
+        ))}
+        {filteredTeam.length === 0 && (
+          <div className="px-3 py-2 text-xs text-gray-500">No matching coordinators.</div>
+        )}
+      </SelectContent>
+    </Select>
+  );
+};
+
 const ImageDropzone = ({
   className = "",
   label,
@@ -1239,18 +1344,40 @@ const ImageDropzone = ({
   const [cropError, setCropError] = useState("");
   const [isCropping, setIsCropping] = useState(false);
   const [isProcessingCrop, setIsProcessingCrop] = useState(false);
-  const [cropRect, setCropRect] = useState<CropRect>({
-    x: 10,
-    y: 10,
-    width: 80,
-    height: 80,
-  });
+  const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [aspectMode, setAspectMode] = useState<string>("4:3");
+  const [customAspectWidth, setCustomAspectWidth] = useState("4");
+  const [customAspectHeight, setCustomAspectHeight] = useState("3");
+  const [outputWidth, setOutputWidth] = useState("");
+  const [outputHeight, setOutputHeight] = useState("");
+  const cropAspect = useMemo(() => {
+    if (aspectMode === "custom") {
+      const width = Number(customAspectWidth);
+      const height = Number(customAspectHeight);
+      if (width > 0 && height > 0) return width / height;
+    }
+    const preset = CROP_ASPECT_PRESETS.find((item) => item.label === aspectMode);
+    return preset?.value || 4 / 3;
+  }, [aspectMode, customAspectWidth, customAspectHeight]);
+  const onCropComplete = useCallback(
+    (_: Area, pixels: Area) => setCroppedAreaPixels(pixels),
+    [],
+  );
 
   const clearPendingFile = () => {
     if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl);
     setPendingFile(null);
     setPendingPreviewUrl("");
-    setCropRect({ x: 10, y: 10, width: 80, height: 80 });
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
+    setAspectMode("4:3");
+    setCustomAspectWidth("4");
+    setCustomAspectHeight("3");
+    setOutputWidth("");
+    setOutputHeight("");
     setIsCropping(false);
     setCropError("");
     setIsProcessingCrop(false);
@@ -1261,18 +1388,6 @@ const ImageDropzone = ({
       if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl);
     };
   }, [pendingPreviewUrl]);
-
-  const clampCropRect = (next: CropRect): CropRect => {
-    const width = Math.min(100, Math.max(MIN_CROP_SIZE, next.width));
-    const height = Math.min(100, Math.max(MIN_CROP_SIZE, next.height));
-    const x = Math.min(100 - width, Math.max(0, next.x));
-    const y = Math.min(100 - height, Math.max(0, next.y));
-    return { x, y, width, height };
-  };
-
-  const updateCropRect = (field: keyof CropRect, value: number) => {
-    setCropRect((prev) => clampCropRect({ ...prev, [field]: value }));
-  };
 
   const prepareFile = (file?: File) => {
     if (!file) return;
@@ -1286,7 +1401,14 @@ const ImageDropzone = ({
     setPendingFile(file);
     setPendingPreviewUrl(previewUrl);
     setIsCropping(false);
-    setCropRect({ x: 10, y: 10, width: 80, height: 80 });
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
+    setAspectMode("4:3");
+    setCustomAspectWidth("4");
+    setCustomAspectHeight("3");
+    setOutputWidth("");
+    setOutputHeight("");
   };
 
   const uploadFullImage = () => {
@@ -1297,10 +1419,33 @@ const ImageDropzone = ({
 
   const applyCropAndUpload = async () => {
     if (!pendingFile) return;
+    if (!croppedAreaPixels) {
+      setCropError("Please adjust crop and try again.");
+      return;
+    }
+    const desiredWidth = Number(outputWidth);
+    const desiredHeight = Number(outputHeight);
+    const hasWidthInput = outputWidth.trim().length > 0;
+    const hasHeightInput = outputHeight.trim().length > 0;
+    if (
+      (hasWidthInput || hasHeightInput) &&
+      (!(desiredWidth > 0) || !(desiredHeight > 0))
+    ) {
+      setCropError("Enter valid output width and height (positive numbers).");
+      return;
+    }
     setCropError("");
     setIsProcessingCrop(true);
     try {
-      const croppedFile = await getCroppedImageFile(pendingFile, cropRect);
+      const outputDimensions =
+        hasWidthInput && hasHeightInput
+          ? { width: Math.round(desiredWidth), height: Math.round(desiredHeight) }
+          : undefined;
+      const croppedFile = await getCroppedImageFile(
+        pendingFile,
+        croppedAreaPixels,
+        outputDimensions,
+      );
       onFileSelect(croppedFile);
       clearPendingFile();
     } catch (error) {
@@ -1426,77 +1571,96 @@ const ImageDropzone = ({
 
               <div className="space-y-4">
                 <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-white/10 bg-black/40">
-                  <img
-                    src={pendingPreviewUrl}
-                    alt="Crop preview"
-                    className="w-full h-full object-contain select-none"
-                    draggable={false}
-                  />
-                  <div
-                    className="absolute border-2 border-red-500 shadow-[0_0_0_9999px_rgba(0,0,0,0.45)] pointer-events-none"
-                    style={{
-                      left: `${cropRect.x}%`,
-                      top: `${cropRect.y}%`,
-                      width: `${cropRect.width}%`,
-                      height: `${cropRect.height}%`,
-                    }}
+                  <Cropper
+                    image={pendingPreviewUrl}
+                    crop={crop}
+                    zoom={zoom}
+                    aspect={cropAspect}
+                    onCropChange={setCrop}
+                    onZoomChange={setZoom}
+                    onCropComplete={onCropComplete}
+                    cropShape="rect"
+                    showGrid
+                    objectFit="contain"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
+                  <div className="space-y-2 md:col-span-2">
                     <label className="text-xs font-black uppercase tracking-widest text-gray-500">
-                      Horizontal Position ({Math.round(cropRect.x)}%)
+                      Aspect Ratio
                     </label>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100 - cropRect.width}
-                      value={cropRect.x}
-                      onChange={(e) => updateCropRect("x", Number(e.target.value))}
-                      className="w-full"
-                    />
+                    <div className="flex flex-wrap gap-2">
+                      {CROP_ASPECT_PRESETS.map((preset) => (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          onClick={() => setAspectMode(preset.label)}
+                          className={`px-3 py-2 rounded-lg text-xs font-black uppercase tracking-widest border transition-colors ${
+                            aspectMode === preset.label
+                              ? "bg-red-600 text-white border-red-500"
+                              : "bg-black/40 text-gray-300 border-white/10 hover:border-white/30"
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setAspectMode("custom")}
+                        className={`px-3 py-2 rounded-lg text-xs font-black uppercase tracking-widest border transition-colors ${
+                          aspectMode === "custom"
+                            ? "bg-red-600 text-white border-red-500"
+                            : "bg-black/40 text-gray-300 border-white/10 hover:border-white/30"
+                        }`}
+                      >
+                        Custom
+                      </button>
+                    </div>
                   </div>
-                  <div className="space-y-2">
+
+                  {aspectMode === "custom" && (
+                    <>
+                      <FormInput
+                        label="Custom Ratio Width"
+                        value={customAspectWidth}
+                        onChange={setCustomAspectWidth}
+                        required={false}
+                      />
+                      <FormInput
+                        label="Custom Ratio Height"
+                        value={customAspectHeight}
+                        onChange={setCustomAspectHeight}
+                        required={false}
+                      />
+                    </>
+                  )}
+
+                  <FormInput
+                    label="Output Width (px)"
+                    value={outputWidth}
+                    onChange={setOutputWidth}
+                    required={false}
+                    placeholder="Optional"
+                  />
+                  <FormInput
+                    label="Output Height (px)"
+                    value={outputHeight}
+                    onChange={setOutputHeight}
+                    required={false}
+                    placeholder="Optional"
+                  />
+                  <div className="space-y-2 md:col-span-2">
                     <label className="text-xs font-black uppercase tracking-widest text-gray-500">
-                      Vertical Position ({Math.round(cropRect.y)}%)
+                      Zoom ({zoom.toFixed(2)}x)
                     </label>
                     <input
                       type="range"
-                      min={0}
-                      max={100 - cropRect.height}
-                      value={cropRect.y}
-                      onChange={(e) => updateCropRect("y", Number(e.target.value))}
-                      className="w-full"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-gray-500">
-                      Crop Width ({Math.round(cropRect.width)}%)
-                    </label>
-                    <input
-                      type="range"
-                      min={MIN_CROP_SIZE}
-                      max={100 - cropRect.x}
-                      value={cropRect.width}
-                      onChange={(e) =>
-                        updateCropRect("width", Number(e.target.value))
-                      }
-                      className="w-full"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-gray-500">
-                      Crop Height ({Math.round(cropRect.height)}%)
-                    </label>
-                    <input
-                      type="range"
-                      min={MIN_CROP_SIZE}
-                      max={100 - cropRect.y}
-                      value={cropRect.height}
-                      onChange={(e) =>
-                        updateCropRect("height", Number(e.target.value))
-                      }
+                      min={1}
+                      max={3}
+                      step={0.01}
+                      value={zoom}
+                      onChange={(e) => setZoom(Number(e.target.value))}
                       className="w-full"
                     />
                   </div>
